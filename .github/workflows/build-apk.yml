@@ -21,7 +21,6 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
 
       - name: Install dependencies
@@ -29,6 +28,10 @@ jobs:
 
       - name: Ensure Android platform files exist
         run: flutter create . --platforms=android --project-name gam3eya_app --org com.example
+
+      - name: Bump Kotlin Gradle plugin version (fixes compile errors with newer plugins)
+        run: |
+          sed -i -E 's/(id "org\.jetbrains\.kotlin\.android" version ")[^"]*(")/\11.9.24\2/' android/settings.gradle || true
 
       - name: Build APK (release)
         run: flutter build apk --release
