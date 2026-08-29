@@ -13,33 +13,40 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-
-      - name: Install dependencies
-        run: flutter pub get
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
 
       - name: Ensure Android platform files exist
         run: flutter create . --platforms=android --project-name gam3eya_app --org com.example
 
-      - name: Bump Kotlin Gradle plugin version (fixes compile errors with newer plugins)
+      - name: Configure Android SDK
         run: |
-          sed -i -E 's/(id "org\.jetbrains\.kotlin\.android" version ")[^"]*(")/\11.9.24\2/' android/settings.gradle || true
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/build.gradle.kts')
+          if p.exists():
+              s = p.read_text()
+              s = s.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 36')
+              s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 36')
+              p.write_text(s)
+          PY
+          grep -nE 'compileSdk|targetSdk|minSdk' android/app/build.gradle.kts || true
 
-      - name: Bump compileSdk/targetSdk (required by newer plugins like share_plus)
-        run: |
-          sed -i -E 's/compileSdk(Version)?[[:space:]]+flutter\.compileSdkVersion/compileSdk 36/' android/app/build.gradle || true
-          sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts 2>/dev/null || true
-          sed -i -E 's/targetSdk(Version)?[[:space:]]+flutter\.targetSdkVersion/targetSdk 36/' android/app/build.gradle || true
-          sed -i -E 's/targetSdk[[:space:]]*=[[:space:]]*flutter\.targetSdkVersion/targetSdk = 36/' android/app/build.gradle.kts 2>/dev/null || true
-          cat android/app/build.gradle 2>/dev/null | grep -i sdk || cat android/app/build.gradle.kts | grep -i sdk
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+        continue-on-error: true
 
       - name: Build APK (release)
         run: flutter build apk --release
@@ -49,3 +56,4 @@ jobs:
         with:
           name: gam3eya-app-release
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
