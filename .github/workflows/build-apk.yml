@@ -35,10 +35,10 @@ jobs:
 
       - name: Bump compileSdk/targetSdk (required by newer plugins like share_plus)
         run: |
-          sed -i -E 's/compileSdk(Version)?[[:space:]]+flutter\.compileSdkVersion/compileSdk 35/' android/app/build.gradle || true
-          sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 35/' android/app/build.gradle.kts 2>/dev/null || true
-          sed -i -E 's/targetSdk(Version)?[[:space:]]+flutter\.targetSdkVersion/targetSdk 35/' android/app/build.gradle || true
-          sed -i -E 's/targetSdk[[:space:]]*=[[:space:]]*flutter\.targetSdkVersion/targetSdk = 35/' android/app/build.gradle.kts 2>/dev/null || true
+          sed -i -E 's/compileSdk(Version)?[[:space:]]+flutter\.compileSdkVersion/compileSdk 36/' android/app/build.gradle || true
+          sed -i -E 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts 2>/dev/null || true
+          sed -i -E 's/targetSdk(Version)?[[:space:]]+flutter\.targetSdkVersion/targetSdk 36/' android/app/build.gradle || true
+          sed -i -E 's/targetSdk[[:space:]]*=[[:space:]]*flutter\.targetSdkVersion/targetSdk = 36/' android/app/build.gradle.kts 2>/dev/null || true
           cat android/app/build.gradle 2>/dev/null | grep -i sdk || cat android/app/build.gradle.kts | grep -i sdk
 
       - name: Build APK (release)
