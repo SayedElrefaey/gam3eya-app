@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/models.dart';
+import 'models/models.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -11,20 +11,24 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static String? baseUrl; // مثال: https://yourdomain.com/api.php
+  // رابط السيرفر ثابت داخل التطبيق، ولا يحتاج المستخدم لإدخاله.
+  static const String defaultBaseUrl = 'https://invoice.oxserver.net/login.php';
+
+  static String? baseUrl;
   static String? token;
   static String? username;
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    baseUrl = prefs.getString('baseUrl');
+    // استخدم الرابط الثابت دائمًا حتى لا يتم الاحتفاظ بعنوان قديم من نسخة سابقة.
+    baseUrl = defaultBaseUrl;
     token = prefs.getString('token');
     username = prefs.getString('username');
   }
 
   static Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    if (baseUrl != null) await prefs.setString('baseUrl', baseUrl!);
+    await prefs.setString('baseUrl', defaultBaseUrl);
     if (token != null) await prefs.setString('token', token!);
     if (username != null) await prefs.setString('username', username!);
   }
@@ -33,6 +37,7 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('username');
+    baseUrl = defaultBaseUrl;
     token = null;
     username = null;
   }
@@ -41,7 +46,7 @@ class ApiService {
 
   static Uri _uri(String endpoint, [Map<String, String>? extra]) {
     final params = {'endpoint': endpoint, ...?extra};
-    return Uri.parse(baseUrl!).replace(queryParameters: params);
+    return Uri.parse(baseUrl ?? defaultBaseUrl).replace(queryParameters: params);
   }
 
   static Map<String, String> get _headers => {
@@ -52,7 +57,12 @@ class ApiService {
   static Future<Map<String, dynamic>> _decode(http.Response res) async {
     Map<String, dynamic> data = {};
     try {
-      data = jsonDecode(res.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(res.body);
+      if (decoded is Map<String, dynamic>) {
+        data = decoded;
+      } else {
+        throw const FormatException();
+      }
     } catch (_) {
       throw ApiException('استجابة غير متوقعة من السيرفر');
     }
@@ -62,21 +72,19 @@ class ApiService {
     return data;
   }
 
-  static Future<void> login(String server, String user, String pass) async {
-    var s = server.trim();
-    if (!s.startsWith('http')) s = 'https://$s';
-    if (!s.endsWith('api.php')) {
-      s = s.endsWith('/') ? '${s}api.php' : '$s/api.php';
-    }
-    baseUrl = s;
+  static Future<void> login(String _serverIgnored, String user, String pass) async {
+    baseUrl = defaultBaseUrl;
     final res = await http.post(
       _uri('login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': user, 'password': pass}),
     );
     final data = await _decode(res);
-    token = data['token'].toString();
-    username = data['username'].toString();
+    token = data['token']?.toString();
+    username = data['username']?.toString() ?? user;
+    if (token == null || token!.isEmpty) {
+      throw ApiException('السيرفر لم يُرجع رمز الدخول');
+    }
     await _persist();
   }
 
