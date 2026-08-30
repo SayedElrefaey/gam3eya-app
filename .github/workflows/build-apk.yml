@@ -42,10 +42,18 @@ jobs:
 
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           s = manifest.read_text()
-          permission = '<uses-permission android:name="android.permission.INTERNET" />'
-          if permission not in s:
-              s = s.replace('<manifest ', '<manifest ' + permission + '\n    ')
-          manifest.write_text(s)
+          permission = '    <uses-permission android:name="android.permission.INTERNET" />\n'
+          if 'android.permission.INTERNET' not in s:
+              end = s.find('>')
+              if end == -1:
+                  raise RuntimeError('Invalid AndroidManifest.xml: opening manifest tag not found')
+              s = s[:end + 1] + '\n' + permission + s[end + 1:]
+              manifest.write_text(s)
+          PY
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse('android/app/src/main/AndroidManifest.xml')
+          print('AndroidManifest.xml: valid XML')
           PY
           grep -nE 'INTERNET' android/app/src/main/AndroidManifest.xml
           grep -nE 'compileSdk|targetSdk|minSdk' android/app/build.gradle.kts || true
