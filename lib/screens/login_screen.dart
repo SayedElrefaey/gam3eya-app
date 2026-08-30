@@ -20,8 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      // رابط السيرفر مدمج داخل التطبيق، ولا يحتاج المستخدم لإدخاله.
-      await ApiService.login('', _userCtrl.text.trim(), _passCtrl.text);
+      await ApiService.login(_userCtrl.text, _passCtrl.text);
       if (!mounted) return;
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const HomeScreen()));
@@ -71,12 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF12332A))),
-                const SizedBox(height: 8),
-                const Text(
-                  'السيرفر: invoice.oxserver.net',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B6B6B)),
-                ),
                 const SizedBox(height: 20),
                 if (_error != null)
                   Padding(
@@ -92,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'اسم المستخدم',
                     border: OutlineInputBorder(),
                   ),
-                  textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -103,7 +95,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'كلمة المرور',
                     border: OutlineInputBorder(),
                   ),
-                  onSubmitted: (_) => _loading ? null : _submit(),
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
@@ -127,12 +118,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _userCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
   }
 }
