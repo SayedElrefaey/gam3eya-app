@@ -9,19 +9,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _serverCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    if (ApiService.baseUrl != null) {
-      _serverCtrl.text = ApiService.baseUrl!.replaceAll('/api.php', '');
-    }
-  }
 
   Future<void> _submit() async {
     setState(() {
@@ -29,8 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await ApiService.login(
-          _serverCtrl.text, _userCtrl.text, _passCtrl.text);
+      // رابط السيرفر مدمج داخل التطبيق، ولا يحتاج المستخدم لإدخاله.
+      await ApiService.login('', _userCtrl.text.trim(), _passCtrl.text);
       if (!mounted) return;
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const HomeScreen()));
@@ -80,6 +71,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF12332A))),
+                const SizedBox(height: 8),
+                const Text(
+                  'السيرفر: invoice.oxserver.net',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6B6B6B)),
+                ),
                 const SizedBox(height: 20),
                 if (_error != null)
                   Padding(
@@ -89,21 +86,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.red)),
                   ),
                 TextField(
-                  controller: _serverCtrl,
-                  textAlign: TextAlign.right,
-                  decoration: const InputDecoration(
-                    labelText: 'رابط السيرفر (مثال: yourdomain.com)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
                   controller: _userCtrl,
                   textAlign: TextAlign.right,
                   decoration: const InputDecoration(
                     labelText: 'اسم المستخدم',
                     border: OutlineInputBorder(),
                   ),
+                  textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -114,6 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'كلمة المرور',
                     border: OutlineInputBorder(),
                   ),
+                  onSubmitted: (_) => _loading ? null : _submit(),
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
@@ -137,5 +127,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _userCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 }
