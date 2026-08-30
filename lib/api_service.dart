@@ -47,7 +47,11 @@ class ApiService {
   static bool get isLoggedIn => token != null && baseUrl != null;
 
   static Uri _uri(String endpoint, [Map<String, String>? extra]) {
-    final params = {'endpoint': endpoint, ...?extra};
+    final params = {
+      'endpoint': endpoint,
+      if (token != null) 'token': token!,
+      ...?extra,
+    };
     return Uri.parse(baseUrl!).replace(queryParameters: params);
   }
 
