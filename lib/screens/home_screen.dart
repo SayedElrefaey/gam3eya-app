@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             color: cover,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Row(children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -213,21 +213,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: _sections.map((s) {
                       final isActive = s.id == _activeId;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          label: Text(s.name),
-                          selected: isActive,
-                          selectedColor: gold,
-                          labelStyle: TextStyle(color: isActive ? cover : Colors.white70, fontWeight: FontWeight.bold),
-                          backgroundColor: Colors.white12,
-                          onSelected: (_) => setState(() => _activeId = s.id),
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Material(
+                          color: isActive ? gold : Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => setState(() => _activeId = s.id),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                              child: Text(
+                                s.name,
+                                style: TextStyle(
+                                  color: isActive ? cover : Colors.white.withOpacity(0.75),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.settings, color: Colors.white), onPressed: _openTabsManager),
+              const SizedBox(width: 6),
+              Material(
+                color: Colors.white.withOpacity(0.08),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: _openTabsManager,
+                ),
+              ),
             ]),
           ),
           Expanded(
