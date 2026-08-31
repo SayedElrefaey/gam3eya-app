@@ -195,80 +195,8 @@ class _IndividualsTabState extends State<IndividualsTab> {
     }
   }
 
-  Future<void> _quickAddEntry(Individual p) async {
-    final noteCtrl = TextEditingController();
-    final amountCtrl = TextEditingController();
-    String type = 'debit';
-    DateTime date = DateTime.now();
-    String? error;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('إضافة حركة - ${p.name}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 14),
-              TextField(controller: noteCtrl, textAlign: TextAlign.right,
-                  decoration: const InputDecoration(labelText: 'الوصف', border: OutlineInputBorder())),
-              const SizedBox(height: 10),
-              TextField(controller: amountCtrl, textAlign: TextAlign.right, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'المبلغ', border: OutlineInputBorder())),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: type,
-                decoration: const InputDecoration(labelText: 'نوع الحركة', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'debit', child: Text('مستحق (عليه)')),
-                  DropdownMenuItem(value: 'credit', child: Text('تم تحصيله (له)')),
-                ],
-                onChanged: (v) => setSt(() => type = v ?? 'debit'),
-              ),
-              if (error != null)
-                Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-                onPressed: () async {
-                  final amount = double.tryParse(amountCtrl.text) ?? 0;
-                  if (amount <= 0) { setSt(() => error = 'من فضلك أدخل مبلغ صحيح'); return; }
-                  final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                  try {
-                    await ApiService.addEntry(individualId: p.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    _load();
-                  } catch (e) {
-                    setSt(() => error = e.toString());
-                  }
-                },
-                child: const Text('حفظ الحركة'),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final items = _items;
-    double sumDebit = 0, sumCredit = 0;
-    for (final p in items) {
-      if (p.total > 0) {
-        sumDebit += p.total;
-      } else {
-        sumCredit += -p.total;
-      }
-    }
-    final net = sumDebit - sumCredit;
-
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddForm,
@@ -277,104 +205,40 @@ class _IndividualsTabState extends State<IndividualsTab> {
         icon: const Icon(Icons.add),
         label: Text('إضافة ${widget.section.name}'),
       ),
-      bottomNavigationBar: (items.isEmpty || _error != null || _loading)
-          ? null
-          : Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEDEDED),
-                border: Border(top: BorderSide(color: Color(0xFFD8CFB0))),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('له: ${fmtNum(sumCredit)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('عليه: ${fmtNum(sumDebit)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('الرصيد ${net >= 0 ? 'عليه' : 'له'}: ${fmtNum(net.abs())}',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                ],
-              ),
-            ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _error != null
             ? ListView(children: [Padding(padding: const EdgeInsets.all(30), child: Text(_error!, textAlign: TextAlign.center))])
             : _loading
                 ? const Center(child: CircularProgressIndicator())
-                : items.isEmpty
+                : _items.isEmpty
                     ? ListView(children: [
                         Padding(padding: const EdgeInsets.all(40), child: Text('لا يوجد ${widget.section.name} بعد\nأضف عنصر وسجل حسابه', textAlign: TextAlign.center))
                       ])
-                    : ListView(
+                    : ListView.builder(
                         padding: const EdgeInsets.all(12),
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 8, right: 4),
-                              child: Text('${items.length} 👥',
-                                  style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1279C6), fontSize: 14)),
+                        itemCount: _items.length,
+                        itemBuilder: (ctx, i) {
+                          final p = _items[i];
+                          final sym = currencySymbols[p.currency] ?? p.currency;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            child: ListTile(
+                              onTap: () async {
+                                await Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => IndividualDetailScreen(id: p.id)));
+                                _load();
+                              },
+                              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('${p.phone.isEmpty ? 'بدون رقم هاتف' : p.phone} · الإجمالي ${fmtNum(p.total)} $sym'),
+                              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Chip(label: Text(sym)),
+                                IconButton(icon: const Icon(Icons.edit, color: cover), onPressed: () => _edit(p)),
+                                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _delete(p)),
+                              ]),
                             ),
-                          ),
-                          ...items.map((p) {
-                            final isDebit = p.total > 0;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFD8CFB0)),
-                              ),
-                              child: InkWell(
-                                onTap: () async {
-                                  await Navigator.push(context,
-                                      MaterialPageRoute(builder: (_) => IndividualDetailScreen(id: p.id)));
-                                  _load();
-                                },
-                                child: Row(children: [
-                                  Container(
-                                    width: 34, height: 34,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isDebit ? const Color(0xFFE05252) : const Color(0xFF3CB878),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Icon(isDebit ? Icons.arrow_downward : Icons.arrow_upward, color: Colors.white, size: 18),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                        const SizedBox(height: 2),
-                                        Text('${fmtNum(p.total.abs())} ${currencySymbols[p.currency] ?? p.currency}',
-                                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                                      ],
-                                    ),
-                                  ),
-                                  Stack(clipBehavior: Clip.none, children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.note_add, color: Color(0xFF1279C6)),
-                                      onPressed: () => _quickAddEntry(p),
-                                    ),
-                                    Positioned(
-                                      top: 2, left: 2,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                        decoration: BoxDecoration(color: const Color(0xFF29ABE2), borderRadius: BorderRadius.circular(8)),
-                                        child: Text('${p.entries.length}', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
-                                  ]),
-                                  IconButton(icon: const Icon(Icons.edit, size: 19, color: cover), onPressed: () => _edit(p)),
-                                  IconButton(icon: const Icon(Icons.delete, size: 19, color: Colors.red), onPressed: () => _delete(p)),
-                                ]),
-                              ),
-                            );
-                          }),
-                        ],
+                          );
+                        },
                       ),
       ),
     );
