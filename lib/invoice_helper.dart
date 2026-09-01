@@ -97,62 +97,57 @@ void _addIndividualInvoicePage({
       : 'الرصيد الإجمالي - له';
   final balanceText = '${fmtNum(finalBalance.abs())} $currency'.trim();
 
-  // Important: pdf Table lays children from left to right regardless of the
-  // page textDirection. The web invoice is RTL, so the children below are
-  // deliberately ordered right-to-left visually: التاريخ، التفاصيل، عليه، له، الرصيد.
+  // The pdf package's Table places children left-to-right. To reproduce the
+  // web page's RTL visual order, columns must therefore be supplied in reverse
+  // visual order: الرصيد ← له ← عليه ← التفاصيل ← التاريخ.
   final tableRows = <pw.TableRow>[
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFD9D9D9)),
       children: [
-        _cell('التاريخ', bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-        _cell('التفاصيل', bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-        _cell('عليه', bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-        _cell('له', bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-        _cell('الرصيد', bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+        _cell('الرصيد', bold, latinFallback, center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+        _cell('له', bold, latinFallback, center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+        _cell('عليه', bold, latinFallback, center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+        _cell('التفاصيل', bold, latinFallback, center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+        _cell('التاريخ', bold, latinFallback, center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
       ],
     ),
     ...rows.map((r) => pw.TableRow(
           children: [
-            _cell(r.date, regular, latinFallback,
-                center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-            _cell(r.details, regular, latinFallback,
-                center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-            _cell(r.debit == 0 ? '0' : fmtNum(r.debit), regular, latinFallback,
+            _cell(fmtNum(r.balance), regular, latinFallback,
                 center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
             _cell(r.credit == 0 ? '0' : fmtNum(r.credit), regular, latinFallback,
                 center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1E8A3C), padding: 8),
-            _cell(fmtNum(r.balance), regular, latinFallback,
+            _cell(r.debit == 0 ? '0' : fmtNum(r.debit), regular, latinFallback,
                 center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
+            _cell(r.details, regular, latinFallback,
+                center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+            _cell(r.date, regular, latinFallback,
+                center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
           ],
         )),
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFEDEDED)),
       children: [
         _cell('', regular, latinFallback, center: true, fontSize: 14, padding: 8),
-        _cell('إجمالي العمليات', bold, latinFallback,
-            center: true, fontSize: 14, padding: 8),
-        _cell(fmtNum(totalDebit), bold, latinFallback,
-            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
         _cell(fmtNum(totalCredit), bold, latinFallback,
             center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFF1E8A3C), padding: 8),
+        _cell(fmtNum(totalDebit), bold, latinFallback,
+            center: true, fontSize: 14, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
+        _cell('إجمالي العمليات', bold, latinFallback,
+            center: true, fontSize: 14, padding: 8),
         _cell('', regular, latinFallback, center: true, fontSize: 14, padding: 8),
       ],
     ),
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF5B7B1)),
       children: [
+        _cell(balanceText, bold, latinFallback,
+            center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 9),
+        _cell('', regular, latinFallback, center: true, fontSize: 15, padding: 9),
         _cell('', regular, latinFallback, center: true, fontSize: 15, padding: 9),
         _cell(balanceLabel, bold, latinFallback,
             center: true, fontSize: 15, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 9),
         _cell('', regular, latinFallback, center: true, fontSize: 15, padding: 9),
-        _cell('', regular, latinFallback, center: true, fontSize: 15, padding: 9),
-        _cell(balanceText, bold, latinFallback,
-            center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 9),
       ],
     ),
   ];
@@ -166,26 +161,20 @@ void _addIndividualInvoicePage({
       build: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(
-            title,
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback]),
-          ),
+          pw.Text(title, textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
           pw.SizedBox(height: 2),
-          pw.Text(
-            subtitle,
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback], color: const PdfColor.fromInt(0xFF6B6248)),
-          ),
+          pw.Text(subtitle, textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback], color: const PdfColor.fromInt(0xFF6B6248))),
           pw.SizedBox(height: 8),
           pw.Table(
             border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFF999999), width: 0.65),
             columnWidths: const {
-              0: pw.FlexColumnWidth(1.05), // التاريخ - rightmost visually
-              1: pw.FlexColumnWidth(1.8),  // التفاصيل
+              0: pw.FlexColumnWidth(1.05), // الرصيد - leftmost visual column
+              1: pw.FlexColumnWidth(1.0),  // له
               2: pw.FlexColumnWidth(1.05), // عليه
-              3: pw.FlexColumnWidth(1.0),  // له
-              4: pw.FlexColumnWidth(1.05), // الرصيد - leftmost visually
+              3: pw.FlexColumnWidth(1.8),  // التفاصيل
+              4: pw.FlexColumnWidth(1.05), // التاريخ - rightmost visual column
             },
             children: tableRows,
           ),
@@ -212,20 +201,28 @@ void _addGam3eyaInvoicePage({
   final tableRows = <pw.TableRow>[
     pw.TableRow(
       children: [
-        _cell('البيان', bold, latinFallback, center: true, fontSize: 11, padding: 6),
-        _cell('المبلغ', bold, latinFallback, center: true, fontSize: 11, padding: 6),
         _cell('الحالة', bold, latinFallback, center: true, fontSize: 11, padding: 6),
+        _cell('المبلغ', bold, latinFallback, center: true, fontSize: 11, padding: 6),
+        _cell('البيان', bold, latinFallback, center: true, fontSize: 11, padding: 6),
       ],
     ),
     ...rows.map((r) => pw.TableRow(
           children: [
-            _cell('${r.details} - ${r.date}', regular, latinFallback, center: true, fontSize: 11, padding: 6),
-            _cell('${fmtNum(r.debit)} ${r.currency}'.trim(), regular, latinFallback, center: true, fontSize: 11, padding: 6),
             _cell(r.credit > 0 ? 'مدفوع' : 'غير مدفوع', regular, latinFallback, center: true, fontSize: 11, padding: 6),
+            _cell('${fmtNum(r.debit)} ${r.currency}'.trim(), regular, latinFallback, center: true, fontSize: 11, padding: 6),
+            _cell('${r.details} - ${r.date}', regular, latinFallback, center: true, fontSize: 11, padding: 6),
           ],
         )),
-    _simpleTotalRow('الإجمالي', '${fmtNum(total)} $currency'.trim(), regular, bold, latinFallback),
-    _simpleTotalRow('المدفوع', '${fmtNum(paid)} $currency'.trim(), regular, bold, latinFallback),
+    pw.TableRow(children: [
+      _cell('', regular, latinFallback, center: true, fontSize: 12, padding: 6),
+      _cell('${fmtNum(total)} $currency'.trim(), bold, latinFallback, center: true, fontSize: 12, padding: 6),
+      _cell('الإجمالي', bold, latinFallback, center: true, fontSize: 12, padding: 6),
+    ]),
+    pw.TableRow(children: [
+      _cell('', regular, latinFallback, center: true, fontSize: 12, padding: 6),
+      _cell('${fmtNum(paid)} $currency'.trim(), bold, latinFallback, center: true, fontSize: 12, padding: 6),
+      _cell('المدفوع', bold, latinFallback, center: true, fontSize: 12, padding: 6),
+    ]),
   ];
 
   doc.addPage(
@@ -237,38 +234,24 @@ void _addGam3eyaInvoicePage({
       build: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(title, textAlign: pw.TextAlign.center, style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
+          pw.Text(title, textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
           pw.SizedBox(height: 2),
-          pw.Text(subtitle, textAlign: pw.TextAlign.center, style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback])),
+          pw.Text(subtitle, textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback])),
           pw.SizedBox(height: 8),
           pw.Table(
             border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFD8CFB0), width: 0.65),
             columnWidths: const {
-              0: pw.FlexColumnWidth(2.3),
-              1: pw.FlexColumnWidth(1.0),
-              2: pw.FlexColumnWidth(0.95),
+              0: pw.FlexColumnWidth(0.95), // الحالة - leftmost visual
+              1: pw.FlexColumnWidth(1.0),  // المبلغ
+              2: pw.FlexColumnWidth(2.3),  // البيان - rightmost visual
             },
             children: tableRows,
           ),
         ],
       ),
     ),
-  );
-}
-
-pw.TableRow _simpleTotalRow(
-  String label,
-  String value,
-  pw.Font regular,
-  pw.Font bold,
-  pw.Font latinFallback,
-) {
-  return pw.TableRow(
-    children: [
-      _cell(label, bold, latinFallback, center: true, fontSize: 12, padding: 6),
-      _cell(value, bold, latinFallback, center: true, fontSize: 12, padding: 6),
-      _cell('', regular, latinFallback, center: true, fontSize: 12, padding: 6),
-    ],
   );
 }
 
