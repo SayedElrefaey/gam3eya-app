@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -17,10 +18,19 @@ String fmtNum(num n) {
 }
 
 class InvoiceRow {
-  final String label;
-  final String amount;
-  final String? status;
-  InvoiceRow(this.label, this.amount, [this.status]);
+  final String date;
+  final String details;
+  final String debit;
+  final String credit;
+  final String balance;
+
+  InvoiceRow({
+    required this.date,
+    required this.details,
+    required this.debit,
+    required this.credit,
+    required this.balance,
+  });
 }
 
 Future<Uint8List> buildInvoicePdf({
@@ -29,76 +39,156 @@ Future<Uint8List> buildInvoicePdf({
   required List<InvoiceRow> rows,
   required List<MapEntry<String, String>> totals,
 }) async {
+  final regularData = await rootBundle.load(
+      'assets/fonts/NotoNaskhArabic-Regular.ttf');
+  final boldData = await rootBundle.load(
+      'assets/fonts/NotoNaskhArabic-Bold.ttf');
+  final regular = pw.Font.ttf(regularData);
+  final bold = pw.Font.ttf(boldData);
+
   final doc = pw.Document();
+  final theme = pw.ThemeData.withFont(base: regular, bold: bold);
+
+  final totalDebit = rows.fold<double>(
+      0, (sum, r) => sum + (double.tryParse(r.debit.replaceAll(',', '')) ?? 0));
+  final totalCredit = rows.fold<double>(
+      0, (sum, r) => sum + (double.tryParse(r.credit.replaceAll(',', '')) ?? 0));
+  final finalBalance = rows.isEmpty
+      ? 0.0
+      : (double.tryParse(rows.last.balance.replaceAll(',', '')) ?? 0);
+
+  final currency = rows.isNotEmpty
+      ? _extractCurrency(rows.first)
+      : (totals.isNotEmpty ? _extractCurrencyFromText(totals.first.key) : '');
+
+  final summaryLabel = 'إجمالي العمليات';
+  final balanceLabel = finalBalance >= 0
+      ? 'الرصيد الإجمالي - عليه'
+      : 'الرصيد الإجمالي - له';
+  final balanceText = '${fmtNum(finalBalance.abs())} $currency'.trim();
+
   doc.addPage(
     pw.Page(
       pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.fromLTRB(24, 26, 24, 28),
+      theme: theme,
       textDirection: pw.TextDirection.rtl,
-      build: (context) => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          pw.Text(title,
-              style:
-                  pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 4),
-          pw.Text(subtitle, style: const pw.TextStyle(fontSize: 12)),
-          pw.SizedBox(height: 14),
-          pw.Table(
-            border: pw.TableBorder(
-                horizontalInside:
-                    const pw.BorderSide(color: PdfColors.grey400)),
+      build: (context) {
+        final tableRows = <pw.TableRow>[
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: PdfColors.grey300),
             children: [
-              pw.TableRow(children: [
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(6),
-                    child: pw.Text('الحالة',
-                        style:
-                            pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(6),
-                    child: pw.Text('المبلغ',
-                        style:
-                            pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                pw.Padding(
-                    padding: const pw.EdgeInsets.all(6),
-                    child: pw.Text('البيان',
-                        style:
-                            pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-              ]),
-              ...rows.map((r) => pw.TableRow(children: [
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text(r.status ?? '')),
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text(r.amount)),
-                    pw.Padding(
-                        padding: const pw.EdgeInsets.all(6),
-                        child: pw.Text(r.label)),
-                  ])),
+              _cell('الرصيد', bold, align: pw.TextAlign.center),
+              _cell('له', bold, align: pw.TextAlign.center),
+              _cell('عليه', bold, align: pw.TextAlign.center),
+              _cell('التفاصيل', bold, align: pw.TextAlign.center),
+              _cell('التاريخ', bold, align: pw.TextAlign.center),
             ],
           ),
-          pw.SizedBox(height: 10),
-          pw.Divider(thickness: 1.5),
-          ...totals.map((t) => pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(vertical: 3),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(t.value,
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 13)),
-                    pw.Text(t.key,
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 13)),
-                  ],
+          ...rows.map((r) => pw.TableRow(children: [
+                _cell(r.balance, bold, align: pw.TextAlign.center),
+                _cell(r.credit, bold, align: pw.TextAlign.center),
+                _cell(r.debit, bold, align: pw.TextAlign.center),
+                _cell(r.details, bold, align: pw.TextAlign.center),
+                _cell(r.date, bold, align: pw.TextAlign.center),
+              ])),
+          pw.TableRow(children: [
+            _cell('', regular, align: pw.TextAlign.center),
+            _cell(fmtNum(totalCredit), bold,
+                align: pw.TextAlign.center, color: PdfColors.red),
+            _cell(fmtNum(totalDebit), bold,
+                align: pw.TextAlign.center, color: PdfColors.red),
+            _cell(summaryLabel, bold, align: pw.TextAlign.center),
+            _cell('', regular, align: pw.TextAlign.center),
+          ]),
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
+            children: [
+              _cell(balanceText, bold,
+                  align: pw.TextAlign.center, color: PdfColors.blue900),
+              _cell('', regular, align: pw.TextAlign.center),
+              _cell('', regular, align: pw.TextAlign.center),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(8),
+                child: pw.Text(
+                  balanceLabel,
+                  style: pw.TextStyle(
+                    font: bold,
+                    fontSize: 13,
+                    color: PdfColors.blue900,
+                  ),
+                  textAlign: pw.TextAlign.center,
                 ),
-              )),
-        ],
-      ),
+              ),
+              _cell('', regular, align: pw.TextAlign.center),
+            ],
+          ),
+        ];
+
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            pw.Text(
+              title,
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: bold, fontSize: 18),
+            ),
+            pw.SizedBox(height: 3),
+            pw.Text(
+              subtitle,
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: regular, fontSize: 11),
+            ),
+            pw.SizedBox(height: 12),
+            pw.Table(
+              border: pw.TableBorder.all(
+                color: PdfColors.grey600,
+                width: 0.7,
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.0),
+                1: const pw.FlexColumnWidth(0.75),
+                2: const pw.FlexColumnWidth(0.85),
+                3: const pw.FlexColumnWidth(2.25),
+                4: const pw.FlexColumnWidth(1.25),
+              },
+              children: tableRows,
+            ),
+          ],
+        );
+      },
     ),
   );
   return doc.save();
+}
+
+pw.Widget _cell(
+  String text,
+  pw.Font font, {
+  pw.TextAlign align = pw.TextAlign.right,
+  PdfColor? color,
+}) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.all(7),
+    child: pw.Text(
+      text,
+      textAlign: align,
+      style: pw.TextStyle(font: font, fontSize: 11, color: color),
+    ),
+  );
+}
+
+String _extractCurrency(InvoiceRow row) {
+  final source = '${row.debit} ${row.credit} ${row.balance}';
+  if (source.contains('\$')) return '\$';
+  if (source.contains('ج.م')) return 'ج.م';
+  return '';
+}
+
+String _extractCurrencyFromText(String text) {
+  if (text.contains('\$')) return '\$';
+  if (text.contains('ج.م')) return 'ج.م';
+  return '';
 }
 
 Future<File> savePdfToTemp(Uint8List bytes, String filename) async {
@@ -108,12 +198,10 @@ Future<File> savePdfToTemp(Uint8List bytes, String filename) async {
   return file;
 }
 
-/// يفتح شاشة معاينة/طباعة النظام (زي الويب) لحفظ الملف يدويًا
 Future<void> previewInvoicePdf(Uint8List bytes, String filename) async {
   await Printing.layoutPdf(onLayout: (format) async => bytes, name: filename);
 }
 
-/// يفتح قائمة المشاركة في أندرويد (فيها واتساب) ويرفق ملف الـ PDF مباشرة
 Future<void> shareInvoiceViaWhatsApp(
     Uint8List bytes, String filename, String text) async {
   final file = await savePdfToTemp(bytes, filename);
