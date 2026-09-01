@@ -46,6 +46,9 @@ Future<Uint8List> buildInvoicePdf({
   final boldData = await rootBundle.load('assets/fonts/NotoNaskhArabic-Bold.ttf');
   final regular = pw.Font.ttf(regularData);
   final bold = pw.Font.ttf(boldData);
+  // Helvetica is used as a fallback for Latin characters and punctuation
+  // such as $, commas, slashes and hyphens that may not exist in an Arabic font.
+  final latinFallback = pw.Font.helvetica();
   final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
   final totalDebit = rows.fold<double>(0, (sum, r) => sum + r.debit);
@@ -61,46 +64,48 @@ Future<Uint8List> buildInvoicePdf({
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColors.grey300),
       children: [
-        _cell('الرصيد', bold, center: true),
-        _cell('له', bold, center: true),
-        _cell('عليه', bold, center: true),
-        _cell('التفاصيل', bold, center: true),
-        _cell('التاريخ', bold, center: true),
+        _cell('الرصيد', bold, latinFallback, center: true),
+        _cell('له', bold, latinFallback, center: true),
+        _cell('عليه', bold, latinFallback, center: true),
+        _cell('التفاصيل', bold, latinFallback, center: true),
+        _cell('التاريخ', bold, latinFallback, center: true),
       ],
     ),
     ...rows.map((r) => pw.TableRow(
           decoration: const pw.BoxDecoration(color: PdfColors.white),
           children: [
             _cell('${fmtNum(r.balance)} ${r.currency}'.trim(), regular,
-                center: true),
+                latinFallback, center: true),
             _cell(r.credit == 0 ? '' : fmtNum(r.credit), regular,
-                center: true, textColor: PdfColors.red),
+                latinFallback, center: true, textColor: PdfColors.red),
             _cell(r.debit == 0 ? '' : fmtNum(r.debit), regular,
-                center: true, textColor: PdfColors.red),
-            _cell(r.details, regular, center: true),
-            _cell(r.date, regular, center: true),
+                latinFallback, center: true, textColor: PdfColors.red),
+            _cell(r.details, regular, latinFallback, center: true),
+            _cell(r.date, regular, latinFallback, center: true),
           ],
         )),
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColors.grey200),
       children: [
-        _cell('', regular, center: true),
+        _cell('', regular, latinFallback, center: true),
         _cell(totalCredit == 0 ? '' : fmtNum(totalCredit), bold,
-            center: true, textColor: PdfColors.red),
+            latinFallback, center: true, textColor: PdfColors.red),
         _cell(totalDebit == 0 ? '' : fmtNum(totalDebit), bold,
-            center: true, textColor: PdfColors.red),
-        _cell('إجمالي العمليات', bold, center: true),
-        _cell('', regular, center: true),
+            latinFallback, center: true, textColor: PdfColors.red),
+        _cell('إجمالي العمليات', bold, latinFallback, center: true),
+        _cell('', regular, latinFallback, center: true),
       ],
     ),
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
       children: [
-        _cell(balanceText, bold, center: true, textColor: PdfColors.blue900),
-        _cell('', regular, center: true),
-        _cell('', regular, center: true),
-        _cell(balanceLabel, bold, center: true, textColor: PdfColors.blue900),
-        _cell('', regular, center: true),
+        _cell(balanceText, bold, latinFallback,
+            center: true, textColor: PdfColors.blue900),
+        _cell('', regular, latinFallback, center: true),
+        _cell('', regular, latinFallback, center: true),
+        _cell(balanceLabel, bold, latinFallback,
+            center: true, textColor: PdfColors.blue900),
+        _cell('', regular, latinFallback, center: true),
       ],
     ),
   ];
@@ -118,13 +123,21 @@ Future<Uint8List> buildInvoicePdf({
           pw.Text(
             title,
             textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: bold, fontSize: 18),
+            style: pw.TextStyle(
+              font: bold,
+              fontSize: 18,
+              fontFallback: [latinFallback],
+            ),
           ),
           pw.SizedBox(height: 3),
           pw.Text(
             subtitle,
             textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: regular, fontSize: 11),
+            style: pw.TextStyle(
+              font: regular,
+              fontSize: 11,
+              fontFallback: [latinFallback],
+            ),
           ),
           pw.SizedBox(height: 12),
           pw.Table(
@@ -148,7 +161,8 @@ Future<Uint8List> buildInvoicePdf({
 
 pw.Widget _cell(
   String text,
-  pw.Font font, {
+  pw.Font font,
+  pw.Font latinFallback, {
   bool center = false,
   PdfColor? textColor,
 }) {
@@ -157,7 +171,12 @@ pw.Widget _cell(
     child: pw.Text(
       text,
       textAlign: center ? pw.TextAlign.center : pw.TextAlign.right,
-      style: pw.TextStyle(font: font, fontSize: 11, color: textColor),
+      style: pw.TextStyle(
+        font: font,
+        fontSize: 11,
+        color: textColor,
+        fontFallback: [latinFallback],
+      ),
     ),
   );
 }
