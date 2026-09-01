@@ -58,6 +58,16 @@ jobs:
           grep -nE 'INTERNET' android/app/src/main/AndroidManifest.xml
           grep -nE 'compileSdk|targetSdk|minSdk' android/app/build.gradle.kts || true
 
+      - name: Download Arabic PDF fonts
+        run: |
+          mkdir -p assets/fonts
+          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Regular.ttf \
+            https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf
+          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Bold.ttf \
+            https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Bold.ttf
+          test -s assets/fonts/NotoNaskhArabic-Regular.ttf
+          test -s assets/fonts/NotoNaskhArabic-Bold.ttf
+
       - name: Get dependencies
         run: flutter pub get
 
