@@ -97,6 +97,9 @@ void _addIndividualInvoicePage({
       : 'الرصيد الإجمالي - له';
   final balanceText = '${fmtNum(finalBalance.abs())} $currency'.trim();
 
+  // Important: pdf Table lays children from left to right regardless of the
+  // page textDirection. The web invoice is RTL, so the children below are
+  // deliberately ordered right-to-left visually: التاريخ، التفاصيل، عليه، له، الرصيد.
   final tableRows = <pw.TableRow>[
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFD9D9D9)),
@@ -166,32 +169,23 @@ void _addIndividualInvoicePage({
           pw.Text(
             title,
             textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(
-              font: bold,
-              fontSize: 17,
-              fontFallback: [latinFallback],
-            ),
+            style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback]),
           ),
           pw.SizedBox(height: 2),
           pw.Text(
             subtitle,
             textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(
-              font: regular,
-              fontSize: 11,
-              fontFallback: [latinFallback],
-              color: const PdfColor.fromInt(0xFF6B6248),
-            ),
+            style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback], color: const PdfColor.fromInt(0xFF6B6248)),
           ),
           pw.SizedBox(height: 8),
           pw.Table(
             border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFF999999), width: 0.65),
             columnWidths: const {
-              0: pw.FlexColumnWidth(1.0),
-              1: pw.FlexColumnWidth(1.8),
-              2: pw.FlexColumnWidth(1.05),
-              3: pw.FlexColumnWidth(1.0),
-              4: pw.FlexColumnWidth(1.05),
+              0: pw.FlexColumnWidth(1.05), // التاريخ - rightmost visually
+              1: pw.FlexColumnWidth(1.8),  // التفاصيل
+              2: pw.FlexColumnWidth(1.05), // عليه
+              3: pw.FlexColumnWidth(1.0),  // له
+              4: pw.FlexColumnWidth(1.05), // الرصيد - leftmost visually
             },
             children: tableRows,
           ),
@@ -225,12 +219,9 @@ void _addGam3eyaInvoicePage({
     ),
     ...rows.map((r) => pw.TableRow(
           children: [
-            _cell('${r.details} - ${r.date}', regular, latinFallback,
-                center: true, fontSize: 11, padding: 6),
-            _cell('${fmtNum(r.debit)} ${r.currency}'.trim(), regular, latinFallback,
-                center: true, fontSize: 11, padding: 6),
-            _cell(r.credit > 0 ? 'مدفوع' : 'غير مدفوع', regular, latinFallback,
-                center: true, fontSize: 11, padding: 6),
+            _cell('${r.details} - ${r.date}', regular, latinFallback, center: true, fontSize: 11, padding: 6),
+            _cell('${fmtNum(r.debit)} ${r.currency}'.trim(), regular, latinFallback, center: true, fontSize: 11, padding: 6),
+            _cell(r.credit > 0 ? 'مدفوع' : 'غير مدفوع', regular, latinFallback, center: true, fontSize: 11, padding: 6),
           ],
         )),
     _simpleTotalRow('الإجمالي', '${fmtNum(total)} $currency'.trim(), regular, bold, latinFallback),
@@ -246,17 +237,9 @@ void _addGam3eyaInvoicePage({
       build: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          pw.Text(
-            title,
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback]),
-          ),
+          pw.Text(title, textAlign: pw.TextAlign.center, style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
           pw.SizedBox(height: 2),
-          pw.Text(
-            subtitle,
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback]),
-          ),
+          pw.Text(subtitle, textAlign: pw.TextAlign.center, style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback])),
           pw.SizedBox(height: 8),
           pw.Table(
             border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFD8CFB0), width: 0.65),
@@ -303,12 +286,7 @@ pw.Widget _cell(
     child: pw.Text(
       text,
       textAlign: center ? pw.TextAlign.center : pw.TextAlign.right,
-      style: pw.TextStyle(
-        font: font,
-        fontSize: fontSize,
-        color: textColor,
-        fontFallback: [latinFallback],
-      ),
+      style: pw.TextStyle(font: font, fontSize: fontSize, color: textColor, fontFallback: [latinFallback]),
     ),
   );
 }
@@ -324,8 +302,7 @@ Future<void> previewInvoicePdf(Uint8List bytes, String filename) async {
   await Printing.layoutPdf(onLayout: (format) async => bytes, name: filename);
 }
 
-Future<void> shareInvoiceViaWhatsApp(
-    Uint8List bytes, String filename, String text) async {
+Future<void> shareInvoiceViaWhatsApp(Uint8List bytes, String filename, String text) async {
   final file = await savePdfToTemp(bytes, filename);
   await Share.shareXFiles([XFile(file.path)], text: text);
 }
