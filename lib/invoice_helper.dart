@@ -1,11 +1,12 @@
+import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 
 const currencySymbols = {'EGP': 'ج.م', 'USD': '\$'};
 
@@ -25,7 +26,7 @@ class InvoiceRow {
   final double balance;
   final String currency;
 
-  InvoiceRow({
+  const InvoiceRow({
     required this.date,
     required this.details,
     required this.debit,
@@ -41,14 +42,10 @@ Future<Uint8List> buildInvoicePdf({
   required List<InvoiceRow> rows,
   required List<MapEntry<String, String>> totals,
 }) async {
-  final regularData = await rootBundle.load(
-      'assets/fonts/NotoNaskhArabic-Regular.ttf');
-  final boldData = await rootBundle.load(
-      'assets/fonts/NotoNaskhArabic-Bold.ttf');
+  final regularData = await rootBundle.load('assets/fonts/NotoNaskhArabic-Regular.ttf');
+  final boldData = await rootBundle.load('assets/fonts/NotoNaskhArabic-Bold.ttf');
   final regular = pw.Font.ttf(regularData);
   final bold = pw.Font.ttf(boldData);
-
-  final doc = pw.Document();
   final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
   final totalDebit = rows.fold<double>(0, (sum, r) => sum + r.debit);
@@ -60,107 +57,107 @@ Future<Uint8List> buildInvoicePdf({
       : 'الرصيد الإجمالي - له';
   final balanceText = '${fmtNum(finalBalance.abs())} $currency'.trim();
 
+  final tableRows = <pw.TableRow>[
+    pw.TableRow(
+      decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+      children: [
+        _cell('الرصيد', bold, center: true),
+        _cell('له', bold, center: true),
+        _cell('عليه', bold, center: true),
+        _cell('التفاصيل', bold, center: true),
+        _cell('التاريخ', bold, center: true),
+      ],
+    ),
+    ...rows.map((r) => pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            _cell('${fmtNum(r.balance)} ${r.currency}'.trim(), regular,
+                center: true),
+            _cell(r.credit == 0 ? '' : fmtNum(r.credit), regular,
+                center: true, textColor: PdfColors.red),
+            _cell(r.debit == 0 ? '' : fmtNum(r.debit), regular,
+                center: true, textColor: PdfColors.red),
+            _cell(r.details, regular, center: true),
+            _cell(r.date, regular, center: true),
+          ],
+        )),
+    pw.TableRow(
+      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+      children: [
+        _cell('', regular, center: true),
+        _cell(totalCredit == 0 ? '' : fmtNum(totalCredit), bold,
+            center: true, textColor: PdfColors.red),
+        _cell(totalDebit == 0 ? '' : fmtNum(totalDebit), bold,
+            center: true, textColor: PdfColors.red),
+        _cell('إجمالي العمليات', bold, center: true),
+        _cell('', regular, center: true),
+      ],
+    ),
+    pw.TableRow(
+      decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
+      children: [
+        _cell(balanceText, bold, center: true, textColor: PdfColors.blue900),
+        _cell('', regular, center: true),
+        _cell('', regular, center: true),
+        _cell(balanceLabel, bold, center: true, textColor: PdfColors.blue900),
+        _cell('', regular, center: true),
+      ],
+    ),
+  ];
+
+  final doc = pw.Document();
   doc.addPage(
     pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(24, 26, 24, 28),
+      margin: const pw.EdgeInsets.fromLTRB(24, 24, 24, 28),
       theme: theme,
       textDirection: pw.TextDirection.rtl,
-      build: (context) {
-        final tableRows = <pw.TableRow>[
-          pw.TableRow(
-            decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-            children: [
-              _cell('الرصيد', bold, align: pw.TextAlign.center),
-              _cell('له', bold, align: pw.TextAlign.center),
-              _cell('عليه', bold, align: pw.TextAlign.center),
-              _cell('التفاصيل', bold, align: pw.TextAlign.center),
-              _cell('التاريخ', bold, align: pw.TextAlign.center),
-            ],
+      build: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Text(
+            title,
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(font: bold, fontSize: 18),
           ),
-          ...rows.map((r) => pw.TableRow(children: [
-                _cell('${fmtNum(r.balance)} ${r.currency}'.trim(), bold,
-                    align: pw.TextAlign.center),
-                _cell(r.credit == 0 ? '' : fmtNum(r.credit), bold,
-                    align: pw.TextAlign.center, color: PdfColors.red),
-                _cell(r.debit == 0 ? '' : fmtNum(r.debit), bold,
-                    align: pw.TextAlign.center, color: PdfColors.red),
-                _cell(r.details, bold, align: pw.TextAlign.center),
-                _cell(r.date, bold, align: pw.TextAlign.center),
-              ])),
-          pw.TableRow(children: [
-            _cell('', regular, align: pw.TextAlign.center),
-            _cell(totalCredit == 0 ? '' : fmtNum(totalCredit), bold,
-                align: pw.TextAlign.center, color: PdfColors.red),
-            _cell(totalDebit == 0 ? '' : fmtNum(totalDebit), bold,
-                align: pw.TextAlign.center, color: PdfColors.red),
-            _cell('إجمالي العمليات', bold, align: pw.TextAlign.center),
-            _cell('', regular, align: pw.TextAlign.center),
-          ]),
-          pw.TableRow(
-            decoration:
-                const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
-            children: [
-              _cell(balanceText, bold,
-                  align: pw.TextAlign.center, color: PdfColors.blue900),
-              _cell('', regular, align: pw.TextAlign.center),
-              _cell('', regular, align: pw.TextAlign.center),
-              _cell(balanceLabel, bold,
-                  align: pw.TextAlign.center, color: PdfColors.blue900),
-              _cell('', regular, align: pw.TextAlign.center),
-            ],
+          pw.SizedBox(height: 3),
+          pw.Text(
+            subtitle,
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(font: regular, fontSize: 11),
           ),
-        ];
-
-        return pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            pw.Text(
-              title,
-              textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(font: bold, fontSize: 18),
-            ),
-            pw.SizedBox(height: 3),
-            pw.Text(
-              subtitle,
-              textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(font: regular, fontSize: 11),
-            ),
-            pw.SizedBox(height: 12),
-            pw.Table(
-              border: pw.TableBorder.all(
-                color: PdfColors.grey600,
-                width: 0.7,
-              ),
-              columnWidths: {
-                0: const pw.FlexColumnWidth(1.0),
-                1: const pw.FlexColumnWidth(0.75),
-                2: const pw.FlexColumnWidth(0.85),
-                3: const pw.FlexColumnWidth(2.25),
-                4: const pw.FlexColumnWidth(1.25),
-              },
-              children: tableRows,
-            ),
-          ],
-        );
-      },
+          pw.SizedBox(height: 12),
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.7),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(1.0),
+              1: const pw.FlexColumnWidth(0.75),
+              2: const pw.FlexColumnWidth(0.85),
+              3: const pw.FlexColumnWidth(2.25),
+              4: const pw.FlexColumnWidth(1.25),
+            },
+            children: tableRows,
+          ),
+        ],
+      ),
     ),
   );
+
   return doc.save();
 }
 
 pw.Widget _cell(
   String text,
   pw.Font font, {
-  pw.TextAlign align = pw.TextAlign.right,
-  PdfColor? color,
+  bool center = false,
+  PdfColor? textColor,
 }) {
   return pw.Padding(
     padding: const pw.EdgeInsets.all(7),
     child: pw.Text(
       text,
-      textAlign: align,
-      style: pw.TextStyle(font: font, fontSize: 11, color: color),
+      textAlign: center ? pw.TextAlign.center : pw.TextAlign.right,
+      style: pw.TextStyle(font: font, fontSize: 11, color: textColor),
     ),
   );
 }
