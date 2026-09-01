@@ -48,14 +48,35 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
   Future<void> _sendInvoice() async {
     final g = _g!;
     final sym = currencySymbols[g.currency] ?? g.currency;
-    final rows = g.schedule
-        .map((s) => InvoiceRow('شهر ${s.monthIdx} - ${_fmtDate(s.dueDate)}',
-            '${fmtNum(s.amount)} $sym', s.paid ? 'مدفوع' : 'غير مدفوع'))
-        .toList();
+
+    double runningBalance = 0;
+    double totalDebit = 0;
+    double totalCredit = 0;
+    final rows = <InvoiceRow>[];
+
+    for (final s in g.schedule) {
+      final debit = s.amount;
+      final credit = s.paid ? s.amount : 0.0;
+      runningBalance += debit - credit;
+      totalDebit += debit;
+      totalCredit += credit;
+
+      rows.add(InvoiceRow(
+        date: _fmtDate(s.dueDate),
+        details: 'شهر ${s.monthIdx}',
+        debit: debit,
+        credit: credit,
+        balance: runningBalance,
+        currency: sym,
+      ));
+    }
+
     final totals = [
-      MapEntry('${fmtNum(g.total)} $sym', 'الإجمالي'),
-      MapEntry('${fmtNum(g.paidTotal)} $sym', 'المدفوع'),
+      MapEntry('${fmtNum(totalDebit)} $sym', 'إجمالي عليه'),
+      MapEntry('${fmtNum(totalCredit)} $sym', 'إجمالي له'),
+      MapEntry('${fmtNum(runningBalance.abs())} $sym', 'الرصيد الإجمالي'),
     ];
+
     final bytes = await buildInvoicePdf(
       title: 'فاتورة جمعية',
       subtitle: g.name,
@@ -83,8 +104,11 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
               title: const Text('إرسال عبر واتساب / مشاركة'),
               onTap: () async {
                 Navigator.pop(ctx);
-                await shareInvoiceViaWhatsApp(bytes, 'فاتورة ${g.name}',
-                    'فاتورة ${g.name} - الإجمالي: ${fmtNum(g.total)} $sym');
+                await shareInvoiceViaWhatsApp(
+                  bytes,
+                  'فاتورة ${g.name}',
+                  'فاتورة ${g.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
+                );
               },
             ),
           ]),
