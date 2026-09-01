@@ -28,6 +28,9 @@ jobs:
       - name: Ensure Android platform files exist
         run: flutter create . --platforms=android --project-name gam3eya_app --org com.example
 
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
+
       - name: Configure Android SDK and Internet permission
         run: |
           python3 - <<'PY'
