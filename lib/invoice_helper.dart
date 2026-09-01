@@ -20,9 +20,10 @@ String fmtNum(num n) {
 class InvoiceRow {
   final String date;
   final String details;
-  final String debit;
-  final String credit;
-  final String balance;
+  final double debit;
+  final double credit;
+  final double balance;
+  final String currency;
 
   InvoiceRow({
     required this.date,
@@ -30,6 +31,7 @@ class InvoiceRow {
     required this.debit,
     required this.credit,
     required this.balance,
+    required this.currency,
   });
 }
 
@@ -49,19 +51,10 @@ Future<Uint8List> buildInvoicePdf({
   final doc = pw.Document();
   final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
-  final totalDebit = rows.fold<double>(
-      0, (sum, r) => sum + (double.tryParse(r.debit.replaceAll(',', '')) ?? 0));
-  final totalCredit = rows.fold<double>(
-      0, (sum, r) => sum + (double.tryParse(r.credit.replaceAll(',', '')) ?? 0));
-  final finalBalance = rows.isEmpty
-      ? 0.0
-      : (double.tryParse(rows.last.balance.replaceAll(',', '')) ?? 0);
-
-  final currency = rows.isNotEmpty
-      ? _extractCurrency(rows.first)
-      : (totals.isNotEmpty ? _extractCurrencyFromText(totals.first.key) : '');
-
-  final summaryLabel = 'إجمالي العمليات';
+  final totalDebit = rows.fold<double>(0, (sum, r) => sum + r.debit);
+  final totalCredit = rows.fold<double>(0, (sum, r) => sum + r.credit);
+  final finalBalance = rows.isEmpty ? 0.0 : rows.last.balance;
+  final currency = rows.isEmpty ? '' : rows.first.currency;
   final balanceLabel = finalBalance >= 0
       ? 'الرصيد الإجمالي - عليه'
       : 'الرصيد الإجمالي - له';
@@ -86,40 +79,34 @@ Future<Uint8List> buildInvoicePdf({
             ],
           ),
           ...rows.map((r) => pw.TableRow(children: [
-                _cell(r.balance, bold, align: pw.TextAlign.center),
-                _cell(r.credit, bold, align: pw.TextAlign.center),
-                _cell(r.debit, bold, align: pw.TextAlign.center),
+                _cell('${fmtNum(r.balance)} ${r.currency}'.trim(), bold,
+                    align: pw.TextAlign.center),
+                _cell(r.credit == 0 ? '' : fmtNum(r.credit), bold,
+                    align: pw.TextAlign.center, color: PdfColors.red),
+                _cell(r.debit == 0 ? '' : fmtNum(r.debit), bold,
+                    align: pw.TextAlign.center, color: PdfColors.red),
                 _cell(r.details, bold, align: pw.TextAlign.center),
                 _cell(r.date, bold, align: pw.TextAlign.center),
               ])),
           pw.TableRow(children: [
             _cell('', regular, align: pw.TextAlign.center),
-            _cell(fmtNum(totalCredit), bold,
+            _cell(totalCredit == 0 ? '' : fmtNum(totalCredit), bold,
                 align: pw.TextAlign.center, color: PdfColors.red),
-            _cell(fmtNum(totalDebit), bold,
+            _cell(totalDebit == 0 ? '' : fmtNum(totalDebit), bold,
                 align: pw.TextAlign.center, color: PdfColors.red),
-            _cell(summaryLabel, bold, align: pw.TextAlign.center),
+            _cell('إجمالي العمليات', bold, align: pw.TextAlign.center),
             _cell('', regular, align: pw.TextAlign.center),
           ]),
           pw.TableRow(
-            decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
+            decoration:
+                const pw.BoxDecoration(color: PdfColor.fromInt(0xFFFFB3B0)),
             children: [
               _cell(balanceText, bold,
                   align: pw.TextAlign.center, color: PdfColors.blue900),
               _cell('', regular, align: pw.TextAlign.center),
               _cell('', regular, align: pw.TextAlign.center),
-              pw.Padding(
-                padding: const pw.EdgeInsets.all(8),
-                child: pw.Text(
-                  balanceLabel,
-                  style: pw.TextStyle(
-                    font: bold,
-                    fontSize: 13,
-                    color: PdfColors.blue900,
-                  ),
-                  textAlign: pw.TextAlign.center,
-                ),
-              ),
+              _cell(balanceLabel, bold,
+                  align: pw.TextAlign.center, color: PdfColors.blue900),
               _cell('', regular, align: pw.TextAlign.center),
             ],
           ),
@@ -176,19 +163,6 @@ pw.Widget _cell(
       style: pw.TextStyle(font: font, fontSize: 11, color: color),
     ),
   );
-}
-
-String _extractCurrency(InvoiceRow row) {
-  final source = '${row.debit} ${row.credit} ${row.balance}';
-  if (source.contains('\$')) return '\$';
-  if (source.contains('ج.م')) return 'ج.م';
-  return '';
-}
-
-String _extractCurrencyFromText(String text) {
-  if (text.contains('\$')) return '\$';
-  if (text.contains('ج.م')) return 'ج.م';
-  return '';
 }
 
 Future<File> savePdfToTemp(Uint8List bytes, String filename) async {
