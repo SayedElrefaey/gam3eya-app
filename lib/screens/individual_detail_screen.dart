@@ -147,14 +147,52 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
   Future<void> _sendInvoice() async {
     final p = _p!;
     final sym = currencySymbols[p.currency] ?? p.currency;
-    final d = DateTime.now();
-    final rows = p.entries.map((e) {
+
+    final entries = [...p.entries]
+      ..sort((a, b) {
+        final da = DateTime.parse(a.entryDate);
+        final db = DateTime.parse(b.entryDate);
+        final cmp = da.compareTo(db);
+        return cmp != 0 ? cmp : a.id.compareTo(b.id);
+      });
+
+    double runningBalance = 0;
+    double totalDebit = 0;
+    double totalCredit = 0;
+    final rows = <InvoiceRow>[];
+
+    for (final e in entries) {
       final dt = DateTime.parse(e.entryDate);
-      final sign = e.type == 'debit' ? '' : '-';
-      return InvoiceRow('${e.note.isEmpty ? 'حركة' : e.note} - ${dt.day}/${dt.month}/${dt.year}', '$sign${fmtNum(e.amount)} $sym');
-    }).toList();
-    final totals = [MapEntry('${fmtNum(p.total)} $sym', 'الإجمالي المستحق')];
-    final bytes = await buildInvoicePdf(title: 'فاتورة حساب', subtitle: p.name, rows: rows, totals: totals);
+      final isDebit = e.type == 'debit';
+      final debit = isDebit ? e.amount : 0.0;
+      final credit = isDebit ? 0.0 : e.amount;
+
+      runningBalance += debit - credit;
+      totalDebit += debit;
+      totalCredit += credit;
+
+      rows.add(InvoiceRow(
+        date: '${dt.day}/${dt.month}/${dt.year}',
+        details: e.note.isEmpty ? 'حركة' : e.note,
+        debit: debit,
+        credit: credit,
+        balance: runningBalance,
+        currency: sym,
+      ));
+    }
+
+    final totals = [
+      MapEntry('${fmtNum(runningBalance.abs())} $sym', 'الرصيد الإجمالي'),
+      MapEntry('${fmtNum(totalDebit)} $sym', 'إجمالي عليه'),
+      MapEntry('${fmtNum(totalCredit)} $sym', 'إجمالي له'),
+    ];
+
+    final bytes = await buildInvoicePdf(
+      title: 'فاتورة حساب',
+      subtitle: p.name,
+      rows: rows,
+      totals: totals,
+    );
 
     if (!mounted) return;
     showModalBottomSheet(
@@ -176,17 +214,17 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
               title: const Text('إرسال عبر واتساب / مشاركة'),
               onTap: () async {
                 Navigator.pop(ctx);
-                await shareInvoiceViaWhatsApp(bytes, 'فاتورة ${p.name}',
-                    'فاتورة ${p.name} - الإجمالي: ${fmtNum(p.total)} $sym');
+                await shareInvoiceViaWhatsApp(
+                  bytes,
+                  'فاتورة ${p.name}',
+                  'فاتورة ${p.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
+                );
               },
             ),
           ]),
         ),
       ),
     );
-    // ignore unused var warning
-    // ignore: unnecessary_statements
-    d;
   }
 
   @override
