@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
@@ -19,37 +20,57 @@ class ApiService {
   static String? token;
   static String? username;
   static final http.Client _client = buildResilientHttpClient();
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+
     // نفرض الرابط الثابت دايمًا، عشان نمسح أي قيمة قديمة غلط اتخزنت قبل كده
     baseUrl = defaultServerUrl;
     await prefs.setString('baseUrl', defaultServerUrl);
-    token = prefs.getString('token');
+
+    // التوكن محفوظ في Secure Storage بدل SharedPreferences.
+    token = await _secureStorage.read(key: 'token');
+
+    // ترحيل التوكن القديم تلقائيًا لو كان محفوظًا بالإصدار السابق.
+    if (token == null || token!.isEmpty) {
+      final legacyToken = prefs.getString('token');
+      if (legacyToken != null && legacyToken.isNotEmpty) {
+        token = legacyToken;
+        await _secureStorage.write(key: 'token', value: legacyToken);
+        await prefs.remove('token');
+      }
+    }
+
     username = prefs.getString('username');
   }
 
   static Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     if (baseUrl != null) await prefs.setString('baseUrl', baseUrl!);
-    if (token != null) await prefs.setString('token', token!);
+    if (token != null && token!.isNotEmpty) {
+      await _secureStorage.write(key: 'token', value: token!);
+      // إزالة أي نسخة قديمة غير آمنة من التوكن.
+      await prefs.remove('token');
+    }
     if (username != null) await prefs.setString('username', username!);
   }
 
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
+    await _secureStorage.delete(key: 'token');
     await prefs.remove('token');
     await prefs.remove('username');
     token = null;
     username = null;
   }
 
-  static bool get isLoggedIn => token != null && baseUrl != null;
+  static bool get isLoggedIn => token != null && token!.isNotEmpty && baseUrl != null;
 
   static Uri _uri(String endpoint, [Map<String, String>? extra]) {
     final params = {
       'endpoint': endpoint,
-      if (token != null) 'token': token!,
+      if (token != null && token!.isNotEmpty) 'token': token!,
       ...?extra,
     };
     return Uri.parse(baseUrl!).replace(queryParameters: params);
@@ -57,7 +78,7 @@ class ApiService {
 
   static Map<String, String> get _headers => {
         'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
+        if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
       };
 
   static Future<Map<String, dynamic>> _decode(http.Response res) async {
