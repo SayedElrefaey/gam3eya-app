@@ -4,6 +4,12 @@ import '../models/models.dart';
 import '../invoice_helper.dart';
 import 'gam3eyas_tab.dart' show cover, gold;
 
+const _ledgerHeader = Color(0xFF08A8D8);
+const _ledgerDebit = Color(0xFFE87B73);
+const _ledgerCredit = Color(0xFF91D98B);
+const _ledgerSummary = Color(0xFFC9D9E1);
+const _ledgerBlue = Color(0xFF1414A0);
+
 class IndividualDetailScreen extends StatefulWidget {
   final int id;
   const IndividualDetailScreen({super.key, required this.id});
@@ -172,7 +178,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       totalCredit += credit;
 
       rows.add(InvoiceRow(
-        date: '${dt.day}/${dt.month}/${dt.year}',
+        date: _formatDateTime(dt),
         details: e.note.isEmpty ? 'حركة' : e.note,
         debit: debit,
         credit: credit,
@@ -234,75 +240,273 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     final p = _p!;
     final sym = currencySymbols[p.currency] ?? p.currency;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(p.name)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEntryForm(),
-        backgroundColor: cover,
-        foregroundColor: gold,
-        icon: const Icon(Icons.add),
-        label: const Text('حركة'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(14),
-          children: [
-            Row(children: [
-              _statCard('الإجمالي المستحق', '${fmtNum(p.total)} $sym'),
-              _statCard('عدد الحركات', '${p.entries.length}'),
-            ]),
-            const SizedBox(height: 16),
-            if (p.entries.isEmpty)
-              const Padding(padding: EdgeInsets.all(20), child: Text('لا توجد حركات مسجلة', textAlign: TextAlign.center))
-            else
-              Card(
-                child: Column(
-                  children: p.entries.map((e) {
-                    final dt = DateTime.parse(e.entryDate);
-                    final isDebit = e.type == 'debit';
-                    return ListTile(
-                      title: Text(e.note.isEmpty ? 'حركة' : e.note),
-                      subtitle: Text('${dt.day}/${dt.month}/${dt.year}'),
-                      leading: Text(
-                        '${isDebit ? '' : '-'}${fmtNum(e.amount)}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDebit ? const Color(0xFF1E4A34) : Colors.red),
-                      ),
-                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(icon: const Icon(Icons.edit, size: 20, color: cover), onPressed: () => _openEntryForm(existing: e)),
-                        IconButton(icon: const Icon(Icons.delete, size: 20, color: Colors.red), onPressed: () => _deleteEntry(e.id)),
-                      ]),
-                    );
-                  }).toList(),
-                ),
+    final sorted = [...p.entries]
+      ..sort((a, b) {
+        final da = DateTime.parse(a.entryDate);
+        final db = DateTime.parse(b.entryDate);
+        final cmp = db.compareTo(da);
+        return cmp != 0 ? cmp : b.id.compareTo(a.id);
+      });
+
+    final chronological = [...p.entries]
+      ..sort((a, b) {
+        final da = DateTime.parse(a.entryDate);
+        final db = DateTime.parse(b.entryDate);
+        final cmp = da.compareTo(db);
+        return cmp != 0 ? cmp : a.id.compareTo(b.id);
+      });
+
+    final balances = <int, double>{};
+    double running = 0;
+    double totalDebit = 0;
+    double totalCredit = 0;
+    for (final e in chronological) {
+      if (e.type == 'debit') {
+        running += e.amount;
+        totalDebit += e.amount;
+      } else {
+        running -= e.amount;
+        totalCredit += e.amount;
+      }
+      balances[e.id] = running;
+    }
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: _ledgerHeader,
+          foregroundColor: Colors.white,
+          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+          elevation: 2,
+          actions: [
+            IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'invoice') _sendInvoice();
+                if (value == 'delete') _delete();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'invoice', child: Text('فاتورة PDF')),
+                PopupMenuItem(value: 'delete', child: Text('حذف الفرد')),
+              ],
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _load,
+          color: _ledgerHeader,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 18),
+            children: [
+              Row(
+                children: [
+                  _quickAction(Icons.arrow_forward, 'حركة', () => _openEntryForm()),
+                  _quickAction(Icons.add_circle_outline, 'إضافة', () => _openEntryForm()),
+                  _quickAction(Icons.table_rows, 'تفاصيل', () {}),
+                  _quickAction(Icons.attach_money, sym, () {}),
+                ],
               ),
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: OutlinedButton.icon(onPressed: _sendInvoice, icon: const Icon(Icons.picture_as_pdf), label: const Text('فاتورة PDF'))),
-              const SizedBox(width: 10),
-              Expanded(child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: _delete,
-                icon: const Icon(Icons.delete),
-                label: const Text('حذف الفرد'),
-              )),
-            ]),
+              const SizedBox(height: 12),
+              _ledgerHeaderRow(),
+              const SizedBox(height: 4),
+              if (sorted.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(28),
+                  child: Text('لا توجد حركات مسجلة', textAlign: TextAlign.center),
+                )
+              else
+                ...sorted.map((e) {
+                  final isDebit = e.type == 'debit';
+                  final amountColor = isDebit ? _ledgerDebit : _ledgerCredit;
+                  final balance = balances[e.id] ?? 0;
+                  final balanceColor = balance >= 0 ? _ledgerDebit : _ledgerCredit;
+                  final dt = DateTime.parse(e.entryDate);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ledgerCell(
+                          _formatDateTime(dt),
+                          flex: 16,
+                          background: Colors.white,
+                          textColor: Colors.black,
+                          fontSize: 13,
+                        ),
+                        _ledgerCell(
+                          e.note.isEmpty ? 'حركة' : e.note,
+                          flex: 13,
+                          background: Colors.white,
+                          textColor: Colors.black,
+                          fontSize: 15,
+                        ),
+                        _ledgerCell(
+                          fmtNum(e.amount),
+                          flex: 10,
+                          background: amountColor,
+                          textColor: Colors.black,
+                          fontSize: 18,
+                          bold: true,
+                        ),
+                        _ledgerCell(
+                          fmtNum(balance),
+                          flex: 10,
+                          background: balanceColor,
+                          textColor: Colors.black,
+                          fontSize: 18,
+                          bold: true,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              const SizedBox(height: 8),
+              _summaryBox(totalDebit, totalCredit, running, sym),
+              const SizedBox(height: 62),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _openEntryForm(),
+          backgroundColor: _ledgerHeader,
+          foregroundColor: Colors.white,
+          child: const Icon(Icons.note_add),
+        ),
+      ),
+    );
+  }
+
+  Widget _quickAction(IconData icon, String label, VoidCallback onTap) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: onTap,
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F7F9),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE2EDF0)),
+                ),
+                child: Icon(icon, color: _ledgerHeader, size: 36),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 10)),
           ],
         ),
       ),
     );
   }
 
-  Widget _statCard(String label, String value) => Expanded(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: const Color(0xFFF2ECDA), borderRadius: BorderRadius.circular(8)),
-          child: Column(children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.brown)),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          ]),
+  Widget _ledgerHeaderRow() {
+    return Row(
+      children: [
+        _ledgerHeaderCell('التاريخ', 16),
+        _ledgerHeaderCell('التفاصيل', 13),
+        _ledgerHeaderCell('المبلغ', 10),
+        _ledgerHeaderCell('الرصيد', 10),
+      ],
+    );
+  }
+
+  Widget _ledgerHeaderCell(String text, int flex) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        height: 52,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _ledgerHeader,
+          borderRadius: BorderRadius.circular(4),
         ),
-      );
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _ledgerCell(
+    String text, {
+    required int flex,
+    required Color background,
+    required Color textColor,
+    double fontSize = 16,
+    bool bold = false,
+  }) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: textColor,
+            fontSize: fontSize,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryBox(double totalDebit, double totalCredit, double balance, String sym) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      decoration: BoxDecoration(
+        color: _ledgerSummary,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('عليه: ${fmtNum(totalDebit)}', style: const TextStyle(fontSize: 18)),
+              Text('له: ${fmtNum(totalCredit)}', style: const TextStyle(fontSize: 18)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'الرصيد عليه: ${fmtNum(balance.abs())} $sym'.trim(),
+            style: const TextStyle(fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final hasTime = dt.hour != 0 || dt.minute != 0;
+    if (!hasTime) return '$y-$m-$d';
+    return '$y-$m-$d ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
 }
