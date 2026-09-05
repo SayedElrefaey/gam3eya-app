@@ -383,9 +383,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
             children: [
               Row(
                 children: [
-                  _quickAction(Icons.arrow_back, 'حركة', () => _openEntryForm()),
                   _quickAction(Icons.add_circle_outline, 'إضافة', () => _openEntryForm()),
-                  _quickAction(Icons.table_rows, 'تفاصيل', () {}),
                   _quickAction(Icons.attach_money, sym, () {}),
                 ],
               ),
