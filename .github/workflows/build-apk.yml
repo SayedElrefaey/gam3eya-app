@@ -5,9 +5,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,22 +35,19 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           build = Path('android/app/build.gradle.kts')
           if build.exists():
               s = build.read_text()
               s = s.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 36')
               s = s.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 36')
               build.write_text(s)
-
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           s = manifest.read_text()
-          permission = '    <uses-permission android:name="android.permission.INTERNET" />\n'
           if 'android.permission.INTERNET' not in s:
               end = s.find('>')
               if end == -1:
-                  raise RuntimeError('Invalid AndroidManifest.xml: opening manifest tag not found')
-              s = s[:end + 1] + '\n' + permission + s[end + 1:]
+                  raise RuntimeError('Invalid AndroidManifest.xml')
+              s = s[:end + 1] + '\n    <uses-permission android:name="android.permission.INTERNET" />\n' + s[end + 1:]
               manifest.write_text(s)
           PY
           python3 - <<'PY'
@@ -61,128 +55,56 @@ jobs:
           ET.parse('android/app/src/main/AndroidManifest.xml')
           print('AndroidManifest.xml: valid XML')
           PY
-          grep -nE 'INTERNET' android/app/src/main/AndroidManifest.xml
-          grep -nE 'compileSdk|targetSdk|minSdk' android/app/build.gradle.kts || true
 
       - name: Download Arabic PDF fonts
         run: |
           mkdir -p assets/fonts
-          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Regular.ttf \
-            https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf
-          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Bold.ttf \
-            https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Bold.ttf
+          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Regular.ttf https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Regular.ttf
+          curl -L --fail --retry 3 -o assets/fonts/NotoNaskhArabic-Bold.ttf https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoNaskhArabic/hinted/ttf/NotoNaskhArabic-Bold.ttf
           test -s assets/fonts/NotoNaskhArabic-Regular.ttf
           test -s assets/fonts/NotoNaskhArabic-Bold.ttf
 
-      - name: Patch ledger UI
+      - name: Add ledger UI features
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           path = Path('lib/screens/individual_detail_screen.dart')
           s = path.read_text()
 
-          replacements = {
-              "const _goldPale = Color(0xFFF8E8B8);": "const _goldPale = Color(0xFFF8E8B8);\nconst _amountPale = Color(0xFFEAF3F5);",
-              "style: const TextStyle(color: gold, fontSize: 19, fontWeight: FontWeight.bold),": "style: const TextStyle(color: gold, fontSize: 17, fontWeight: FontWeight.bold),",
-              "fontSize: 12.5,": "fontSize: 15.5,",
-              "fontSize: 15,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),": "fontSize: 17,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),",
-              "final amountBackground = isDebit ? _goldPale : _successLight;": "final amountBackground = isDebit ? _amountPale : _successLight;",
-          }
+          if 'const _amountPale' not in s:
+              s = s.replace('const _goldPale = Color(0xFFF8E8B8);', 'const _goldPale = Color(0xFFF8E8B8);\nconst _amountPale = Color(0xFFEAF3F5);', 1)
 
-          for old, new in replacements.items():
-              if old not in s:
-                  raise RuntimeError(f'Expected source text not found: {old[:100]!r}')
-              s = s.replace(old, new, 1)
+          s = s.replace('fontSize: 12.5,', 'fontSize: 15.5,', 1)
+          s = s.replace('e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 15,', 'e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 17,', 1)
+          s = s.replace('final amountBackground = isDebit ? _goldPale : _successLight;', 'final amountBackground = isDebit ? _amountPale : _successLight;', 1)
 
-          marker = "  Future<void> _deleteEntry(int id) async {"
-          method = r'''  Future<void> _showEntryActions(Entry e) async {
-    await showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit, color: cover),
-              title: const Text('تعديل الحركة'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _openEntryForm(existing: e);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('حذف الحركة'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (dctx) => AlertDialog(
-                    title: const Text('حذف الحركة'),
-                    content: const Text('هل تريد حذف هذه الحركة؟'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('إلغاء')),
-                      TextButton(
-                        onPressed: () => Navigator.pop(dctx, true),
-                        child: const Text('حذف', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
-                if (ok == true) await _deleteEntry(e.id);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-'''
           if '_showEntryActions(Entry e)' not in s:
+              marker = '  Future<void> _deleteEntry(int id) async {'
+              method = '''  Future<void> _showEntryActions(Entry e) async {\n    await showModalBottomSheet(\n      context: context,\n      builder: (ctx) => SafeArea(\n        child: Column(\n          mainAxisSize: MainAxisSize.min,\n          children: [\n            ListTile(\n              leading: const Icon(Icons.edit, color: cover),\n              title: const Text('تعديل الحركة'),\n              onTap: () {\n                Navigator.pop(ctx);\n                _openEntryForm(existing: e);\n              },\n            ),\n            ListTile(\n              leading: const Icon(Icons.delete, color: Colors.red),\n              title: const Text('حذف الحركة'),\n              onTap: () async {\n                Navigator.pop(ctx);\n                final ok = await showDialog<bool>(\n                  context: context,\n                  builder: (dctx) => AlertDialog(\n                    title: const Text('حذف الحركة'),\n                    content: const Text('هل تريد حذف هذه الحركة؟'),\n                    actions: [\n                      TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('إلغاء')),\n                      TextButton(onPressed: () => Navigator.pop(dctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),\n                    ],\n                  ),\n                );\n                if (ok == true) await _deleteEntry(e.id);\n              },\n            ),\n          ],\n        ),\n      ),\n    );\n  }\n\n'''
               if marker not in s:
                   raise RuntimeError('Delete entry marker not found')
               s = s.replace(marker, method + marker, 1)
 
-          old_row = '''                  return Container(
-                    margin: const EdgeInsets.only(bottom: 5),
-                    child: IntrinsicHeight(
-                      child: Row('''
-          new_row = '''                  return GestureDetector(
-                    onLongPress: () => _showEntryActions(e),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 5),
-                      child: IntrinsicHeight(
-                        child: Row('''
-          if old_row in s:
+          old_row = '''                  return Container(\n                    margin: const EdgeInsets.only(bottom: 5),\n                    child: IntrinsicHeight(\n                      child: Row('''
+          new_row = '''                  return GestureDetector(\n                    onLongPress: () => _showEntryActions(e),\n                    child: Container(\n                      margin: const EdgeInsets.only(bottom: 5),\n                      child: IntrinsicHeight(\n                        child: Row('''
+          if 'onLongPress: () => _showEntryActions(e)' not in s:
+              if old_row not in s:
+                  raise RuntimeError('Ledger row marker not found')
               s = s.replace(old_row, new_row, 1)
-              old_end = '''                      ),
-                    ),
-                  );
-                }),'''
-              new_end = '''                        ),
-                      ),
-                    ),
-                  );
-                }),'''
+              old_end = '''                      ),\n                    ),\n                  );\n                }),'''
+              new_end = '''                        ),\n                      ),\n                    ),\n                  );\n                }),'''
               if old_end not in s:
-                  raise RuntimeError('Long-press closing block not found')
+                  raise RuntimeError('Ledger row closing marker not found')
               s = s.replace(old_end, new_end, 1)
 
-          path.write_text(s)
-          print('Ledger UI patched successfully')
-          PY
+          marker = '              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'
+          if marker in s and "label: const Text('فاتورة PDF')" not in s:
+              buttons = '''              const SizedBox(height: 10),\n              Row(\n                children: [\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.picture_as_pdf),\n                      label: const Text('فاتورة PDF'),\n                    ),\n                  ),\n                  const SizedBox(width: 10),\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.share),\n                      label: const Text('إرسال واتساب'),\n                    ),\n                  ),\n                ],\n              ),\n              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'''
+              s = s.replace(marker, buttons, 1)
 
-      - name: Persist source UI changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/screens/individual_detail_screen.dart
-          if ! git diff --cached --quiet; then
-            git commit -m "Add long-press edit and delete for entries [skip ci]"
-            git push
-          fi
+          path.write_text(s)
+          print('Ledger UI features patched successfully')
+          PY
 
       - name: Get dependencies
         run: flutter pub get
