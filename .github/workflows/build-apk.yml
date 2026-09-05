@@ -71,6 +71,68 @@ jobs:
           test -s assets/fonts/NotoNaskhArabic-Regular.ttf
           test -s assets/fonts/NotoNaskhArabic-Bold.ttf
 
+      - name: Patch ledger UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/screens/individual_detail_screen.dart')
+          s = path.read_text()
+
+          replacements = {
+              "const _goldPale = Color(0xFFF8E8B8);": "const _goldPale = Color(0xFFF8E8B8);\nconst _amountPale = Color(0xFFEAF3F5);",
+              "fontSize: 12.5,": "fontSize: 15.5,",
+              "fontSize: 15,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),": "fontSize: 17,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),",
+              "final amountBackground = isDebit ? _goldPale : _successLight;": "final amountBackground = isDebit ? _amountPale : _successLight;",
+              "final amountColor = isDebit ? cover : _success;": "final amountColor = isDebit ? cover : _success;",
+          }
+
+          for old, new in replacements.items():
+              if old not in s:
+                  raise RuntimeError(f'Expected source text not found: {old[:80]!r}')
+              s = s.replace(old, new, 1)
+
+          marker = "              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),"
+          insert = """              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _sendInvoice,
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('فاتورة PDF'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: cover,
+                        side: const BorderSide(color: gold),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _sendInvoice,
+                      icon: const Icon(Icons.share),
+                      label: const Text('إرسال واتساب'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _success,
+                        side: const BorderSide(color: _success),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _summaryBox(totalDebit, totalCredit, running, sym),"""
+          if marker not in s:
+              raise RuntimeError('Invoice action insertion point not found')
+          s = s.replace(marker, insert, 1)
+
+          path.write_text(s)
+          print('Ledger UI patched successfully')
+          PY
+
       - name: Get dependencies
         run: flutter pub get
 
