@@ -4,15 +4,19 @@ import '../models/models.dart';
 import '../invoice_helper.dart';
 import 'gam3eyas_tab.dart' show cover, gold;
 
-const _ledgerHeader = Color(0xFF08A8D8);
-const _ledgerDebit = Color(0xFFE87B73);
-const _ledgerCredit = Color(0xFF91D98B);
-const _ledgerSummary = Color(0xFFC9D9E1);
-const _ledgerBlue = Color(0xFF1414A0);
+const _paper = Color(0xFFFBF7EC);
+const _paper2 = Color(0xFFF2ECDA);
+const _line = Color(0xFFD8CFB0);
+const _success = Color(0xFF2F6B4F);
+const _successLight = Color(0xFFDCF0E3);
+const _goldLight = Color(0xFFE6B95C);
+const _goldPale = Color(0xFFF8E8B8);
+const _danger = Color(0xFFA3402F);
 
 class IndividualDetailScreen extends StatefulWidget {
   final int id;
   const IndividualDetailScreen({super.key, required this.id});
+
   @override
   State<IndividualDetailScreen> createState() => _IndividualDetailScreenState();
 }
@@ -31,15 +35,22 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     try {
       final list = await ApiService.getIndividuals();
       final p = list.firstWhere((x) => x.id == widget.id);
-      if (mounted) setState(() { _p = p; _error = null; });
+      if (!mounted) return;
+      setState(() {
+        _p = p;
+        _error = null;
+      });
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (!mounted) return;
+      setState(() => _error = e.toString());
     }
   }
 
   Future<void> _openEntryForm({Entry? existing}) async {
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
-    final amountCtrl = TextEditingController(text: existing != null ? existing.amount.toString() : '');
+    final amountCtrl = TextEditingController(
+      text: existing != null ? existing.amount.toString() : '',
+    );
     String type = existing?.type ?? 'debit';
     DateTime date = existing != null ? DateTime.parse(existing.entryDate) : DateTime.now();
     String? error;
@@ -47,26 +58,50 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(existing != null ? 'تعديل الحركة' : 'إضافة حركة على الحساب',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  existing != null ? 'تعديل الحركة' : 'إضافة حركة على الحساب',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.right,
+                ),
                 const SizedBox(height: 14),
-                TextField(controller: noteCtrl, textAlign: TextAlign.right,
-                    decoration: const InputDecoration(labelText: 'الوصف', border: OutlineInputBorder())),
+                TextField(
+                  controller: noteCtrl,
+                  textAlign: TextAlign.right,
+                  decoration: const InputDecoration(
+                    labelText: 'الوصف',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 10),
-                TextField(controller: amountCtrl, textAlign: TextAlign.right, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'المبلغ', border: OutlineInputBorder())),
+                TextField(
+                  controller: amountCtrl,
+                  textAlign: TextAlign.right,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: type,
-                  decoration: const InputDecoration(labelText: 'نوع الحركة', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                    labelText: 'نوع الحركة',
+                    border: OutlineInputBorder(),
+                  ),
                   items: const [
                     DropdownMenuItem(value: 'debit', child: Text('مستحق (إضافة)')),
                     DropdownMenuItem(value: 'credit', child: Text('تم تحصيله (خصم)')),
@@ -76,47 +111,82 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                 const SizedBox(height: 10),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('${date.day}/${date.month}/${date.year}'),
+                  title: Text('${date.day}/${date.month}/${date.year}', textAlign: TextAlign.right),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
-                    final d = await showDatePicker(context: ctx, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                    final d = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
                     if (d != null) setSt(() => date = d);
                   },
                 ),
                 if (error != null)
-                  Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.right),
+                  ),
                 const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))),
-                  const SizedBox(width: 10),
-                  Expanded(child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-                    onPressed: () async {
-                      final amount = double.tryParse(amountCtrl.text) ?? 0;
-                      if (amount <= 0) { setSt(() => error = 'من فضلك أدخل مبلغ صحيح'); return; }
-                      final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                      try {
-                        if (existing != null) {
-                          await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);
-                        } else {
-                          await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        _load();
-                      } catch (e) {
-                        setSt(() => error = e.toString());
-                      }
-                    },
-                    child: Text(existing != null ? 'حفظ التعديل' : 'حفظ الحركة'),
-                  )),
-                ]),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('إلغاء'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
+                        onPressed: () async {
+                          final amount = double.tryParse(amountCtrl.text) ?? 0;
+                          if (amount <= 0) {
+                            setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                            return;
+                          }
+                          final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                          try {
+                            if (existing != null) {
+                              await ApiService.updateEntry(
+                                id: existing.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                              );
+                            } else {
+                              await ApiService.addEntry(
+                                individualId: widget.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                              );
+                            }
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            _load();
+                          } catch (e) {
+                            setSt(() => error = e.toString());
+                          }
+                        },
+                        child: Text(existing != null ? 'حفظ التعديل' : 'حفظ الحركة'),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
               ],
             ),
           ),
-        );
-      }),
+        ),
+      ),
     );
+
+    noteCtrl.dispose();
+    amountCtrl.dispose();
   }
 
   Future<void> _deleteEntry(int id) async {
@@ -124,7 +194,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       await ApiService.deleteEntry(id);
       _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
   }
 
@@ -136,16 +208,22 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
         content: const Text('هل تريد حذف هذا الفرد وكل حساباته؟'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
+
     if (ok == true) {
       try {
         await ApiService.deleteIndividual(widget.id);
         if (mounted) Navigator.pop(context);
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        }
       }
     }
   }
@@ -172,32 +250,31 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       final isDebit = e.type == 'debit';
       final debit = isDebit ? e.amount : 0.0;
       final credit = isDebit ? 0.0 : e.amount;
-
       runningBalance += debit - credit;
       totalDebit += debit;
       totalCredit += credit;
 
-      rows.add(InvoiceRow(
-        date: _formatDateTime(dt),
-        details: e.note.isEmpty ? 'حركة' : e.note,
-        debit: debit,
-        credit: credit,
-        balance: runningBalance,
-        currency: sym,
-      ));
+      rows.add(
+        InvoiceRow(
+          date: _formatDateTime(dt),
+          details: e.note.isEmpty ? 'حركة' : e.note,
+          debit: debit,
+          credit: credit,
+          balance: runningBalance,
+          currency: sym,
+        ),
+      );
     }
-
-    final totals = [
-      MapEntry('${fmtNum(runningBalance.abs())} $sym', 'الرصيد الإجمالي'),
-      MapEntry('${fmtNum(totalDebit)} $sym', 'إجمالي عليه'),
-      MapEntry('${fmtNum(totalCredit)} $sym', 'إجمالي له'),
-    ];
 
     final bytes = await buildInvoicePdf(
       title: 'فاتورة حساب',
       subtitle: p.name,
       rows: rows,
-      totals: totals,
+      totals: [
+        MapEntry('${fmtNum(runningBalance.abs())} $sym', 'الرصيد الإجمالي'),
+        MapEntry('${fmtNum(totalDebit)} $sym', 'إجمالي عليه'),
+        MapEntry('${fmtNum(totalCredit)} $sym', 'إجمالي له'),
+      ],
     );
 
     if (!mounted) return;
@@ -206,28 +283,31 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const Icon(Icons.print),
-              title: const Text('طباعة / حفظ PDF'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await previewInvoicePdf(bytes, 'فاتورة ${p.name}');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('إرسال عبر واتساب / مشاركة'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await shareInvoiceViaWhatsApp(
-                  bytes,
-                  'فاتورة ${p.name}',
-                  'فاتورة ${p.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
-                );
-              },
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.print),
+                title: const Text('طباعة / حفظ PDF'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await previewInvoicePdf(bytes, 'فاتورة ${p.name}');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('إرسال عبر واتساب / مشاركة'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await shareInvoiceViaWhatsApp(
+                    bytes,
+                    'فاتورة ${p.name}',
+                    'فاتورة ${p.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -235,18 +315,18 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return Scaffold(appBar: AppBar(), body: Center(child: Text(_error!)));
-    if (_p == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: cover),
+        body: Center(child: Padding(padding: const EdgeInsets.all(20), child: Text(_error!, textAlign: TextAlign.center))),
+      );
+    }
+    if (_p == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final p = _p!;
     final sym = currencySymbols[p.currency] ?? p.currency;
-
-    final sorted = [...p.entries]
-      ..sort((a, b) {
-        final da = DateTime.parse(a.entryDate);
-        final db = DateTime.parse(b.entryDate);
-        final cmp = db.compareTo(da);
-        return cmp != 0 ? cmp : b.id.compareTo(a.id);
-      });
 
     final chronological = [...p.entries]
       ..sort((a, b) {
@@ -260,6 +340,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     double running = 0;
     double totalDebit = 0;
     double totalCredit = 0;
+
     for (final e in chronological) {
       if (e.type == 'debit') {
         running += e.amount;
@@ -274,9 +355,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: _paper,
         appBar: AppBar(
-          backgroundColor: _ledgerHeader,
+          backgroundColor: cover,
           foregroundColor: Colors.white,
           title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w500)),
           elevation: 2,
@@ -296,13 +377,13 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
         ),
         body: RefreshIndicator(
           onRefresh: _load,
-          color: _ledgerHeader,
+          color: cover,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(8, 10, 8, 18),
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 22),
             children: [
               Row(
                 children: [
-                  _quickAction(Icons.arrow_forward, 'حركة', () => _openEntryForm()),
+                  _quickAction(Icons.arrow_back, 'حركة', () => _openEntryForm()),
                   _quickAction(Icons.add_circle_outline, 'إضافة', () => _openEntryForm()),
                   _quickAction(Icons.table_rows, 'تفاصيل', () {}),
                   _quickAction(Icons.attach_money, sym, () {}),
@@ -310,68 +391,79 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
               ),
               const SizedBox(height: 12),
               _ledgerHeaderRow(),
-              const SizedBox(height: 4),
-              if (sorted.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(28),
-                  child: Text('لا توجد حركات مسجلة', textAlign: TextAlign.center),
+              const SizedBox(height: 5),
+              if (chronological.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: _line),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('لا توجد حركات مسجلة'),
                 )
               else
-                ...sorted.map((e) {
+                ...chronological.reversed.map((e) {
                   final isDebit = e.type == 'debit';
-                  final amountColor = isDebit ? _ledgerDebit : _ledgerCredit;
                   final balance = balances[e.id] ?? 0;
-                  final balanceColor = balance >= 0 ? _ledgerDebit : _ledgerCredit;
                   final dt = DateTime.parse(e.entryDate);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _ledgerCell(
-                          _formatDateTime(dt),
-                          flex: 16,
-                          background: Colors.white,
-                          textColor: Colors.black,
-                          fontSize: 13,
-                        ),
-                        _ledgerCell(
-                          e.note.isEmpty ? 'حركة' : e.note,
-                          flex: 13,
-                          background: Colors.white,
-                          textColor: Colors.black,
-                          fontSize: 15,
-                        ),
-                        _ledgerCell(
-                          fmtNum(e.amount),
-                          flex: 10,
-                          background: amountColor,
-                          textColor: Colors.black,
-                          fontSize: 18,
-                          bold: true,
-                        ),
-                        _ledgerCell(
-                          fmtNum(balance),
-                          flex: 10,
-                          background: balanceColor,
-                          textColor: Colors.black,
-                          fontSize: 18,
-                          bold: true,
-                        ),
-                      ],
+                  final amountBackground = isDebit ? _goldPale : _successLight;
+                  final amountColor = isDebit ? cover : _success;
+                  final balanceBackground = balance >= 0 ? _goldPale : _successLight;
+                  final balanceColor = balance >= 0 ? cover : _success;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 5),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ledgerCell(
+                            _formatDateTime(dt),
+                            flex: 16,
+                            background: Colors.white,
+                            textColor: cover,
+                            fontSize: 12.5,
+                          ),
+                          _ledgerCell(
+                            e.note.isEmpty ? 'حركة' : e.note,
+                            flex: 13,
+                            background: Colors.white,
+                            textColor: Colors.black,
+                            fontSize: 15,
+                          ),
+                          _ledgerCell(
+                            fmtNum(e.amount),
+                            flex: 10,
+                            background: amountBackground,
+                            textColor: amountColor,
+                            fontSize: 18,
+                            bold: true,
+                          ),
+                          _ledgerCell(
+                            fmtNum(balance),
+                            flex: 10,
+                            background: balanceBackground,
+                            textColor: balanceColor,
+                            fontSize: 18,
+                            bold: true,
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               _summaryBox(totalDebit, totalCredit, running, sym),
-              const SizedBox(height: 62),
+              const SizedBox(height: 70),
             ],
           ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => _openEntryForm(),
-          backgroundColor: _ledgerHeader,
-          foregroundColor: Colors.white,
+          backgroundColor: gold,
+          foregroundColor: cover,
           child: const Icon(Icons.note_add),
         ),
       ),
@@ -391,15 +483,15 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F7F9),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2EDF0)),
+                  border: Border.all(color: _line),
                 ),
-                child: Icon(icon, color: _ledgerHeader, size: 36),
+                child: Icon(icon, color: gold, size: 34),
               ),
             ),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 10)),
+            Text(label, style: const TextStyle(fontSize: 11, color: cover)),
           ],
         ),
       ),
@@ -423,17 +515,17 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       child: Container(
         height: 52,
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _ledgerHeader,
+          color: cover,
           borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: gold, width: 0.7),
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
             text,
-            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: gold, fontSize: 19, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -453,21 +545,22 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       child: Container(
         constraints: const BoxConstraints(minHeight: 52),
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: _line, width: 0.7),
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
-          maxLines: 3,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: textColor,
             fontSize: fontSize,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
           ),
         ),
       ),
@@ -479,7 +572,8 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
-        color: _ledgerSummary,
+        color: _paper2,
+        border: Border.all(color: _line),
         borderRadius: BorderRadius.circular(9),
       ),
       child: Column(
@@ -487,14 +581,14 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('عليه: ${fmtNum(totalDebit)}', style: const TextStyle(fontSize: 18)),
-              Text('له: ${fmtNum(totalCredit)}', style: const TextStyle(fontSize: 18)),
+              Text('عليه: ${fmtNum(totalDebit)}', style: const TextStyle(fontSize: 18, color: cover, fontWeight: FontWeight.w700)),
+              Text('له: ${fmtNum(totalCredit)}', style: const TextStyle(fontSize: 18, color: _success, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'الرصيد عليه: ${fmtNum(balance.abs())} $sym'.trim(),
-            style: const TextStyle(fontSize: 18),
+            'الرصيد ${balance >= 0 ? 'عليه' : 'له'}: ${fmtNum(balance.abs())} $sym'.trim(),
+            style: const TextStyle(fontSize: 18, color: cover, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -502,11 +596,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
   }
 
   String _formatDateTime(DateTime dt) {
-    final y = dt.year.toString().padLeft(4, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final d = dt.day.toString().padLeft(2, '0');
-    final hasTime = dt.hour != 0 || dt.minute != 0;
-    if (!hasTime) return '$y-$m-$d';
-    return '$y-$m-$d ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    final d = '${dt.day}/${dt.month}/${dt.year}';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$d $h:$m';
   }
 }
