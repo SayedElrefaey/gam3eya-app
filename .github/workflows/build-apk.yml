@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -92,84 +95,94 @@ jobs:
                   raise RuntimeError(f'Expected source text not found: {old[:100]!r}')
               s = s.replace(old, new, 1)
 
-          marker = "              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),"
-          insert = """              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _sendInvoice,
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text('فاتورة PDF'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: cover,
-                        side: const BorderSide(color: gold),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+          marker = "  Future<void> _deleteEntry(int id) async {"
+          method = r'''  Future<void> _showEntryActions(Entry e) async {
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit, color: cover),
+              title: const Text('تعديل الحركة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openEntryForm(existing: e);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('حذف الحركة'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (dctx) => AlertDialog(
+                    title: const Text('حذف الحركة'),
+                    content: const Text('هل تريد حذف هذه الحركة؟'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('إلغاء')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(dctx, true),
+                        child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (ok == true) await _deleteEntry(e.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+'''
+          if '_showEntryActions(Entry e)' not in s:
+              if marker not in s:
+                  raise RuntimeError('Delete entry marker not found')
+              s = s.replace(marker, method + marker, 1)
+
+          old_row = '''                  return Container(
+                    margin: const EdgeInsets.only(bottom: 5),
+                    child: IntrinsicHeight(
+                      child: Row('''
+          new_row = '''                  return GestureDetector(
+                    onLongPress: () => _showEntryActions(e),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 5),
+                      child: IntrinsicHeight(
+                        child: Row('''
+          if old_row in s:
+              s = s.replace(old_row, new_row, 1)
+              old_end = '''                      ),
+                    ),
+                  );
+                }),'''
+              new_end = '''                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final p = _p!;
-                        final sym = currencySymbols[p.currency] ?? p.currency;
-                        final entries = [...p.entries]..sort((a, b) {
-                          final da = DateTime.parse(a.entryDate);
-                          final db = DateTime.parse(b.entryDate);
-                          final cmp = da.compareTo(db);
-                          return cmp != 0 ? cmp : a.id.compareTo(b.id);
-                        });
-                        double runningBalance = 0;
-                        final rows = <InvoiceRow>[];
-                        for (final e in entries) {
-                          final dt = DateTime.parse(e.entryDate);
-                          final isDebit = e.type == 'debit';
-                          final debit = isDebit ? e.amount : 0.0;
-                          final credit = isDebit ? 0.0 : e.amount;
-                          runningBalance += debit - credit;
-                          rows.add(InvoiceRow(
-                            date: _formatDateTime(dt),
-                            details: e.note.isEmpty ? 'حركة' : e.note,
-                            debit: debit,
-                            credit: credit,
-                            balance: runningBalance,
-                            currency: sym,
-                          ));
-                        }
-                        final bytes = await buildInvoicePdf(
-                          title: 'فاتورة حساب',
-                          subtitle: p.name,
-                          rows: rows,
-                          totals: const [],
-                        );
-                        if (!mounted) return;
-                        await shareInvoiceViaWhatsApp(
-                          bytes,
-                          'فاتورة ${p.name}',
-                          'فاتورة ${p.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
-                        );
-                      },
-                      icon: const Icon(Icons.share),
-                      label: const Text('إرسال واتساب'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _success,
-                        side: const BorderSide(color: _success),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _summaryBox(totalDebit, totalCredit, running, sym),"""
-          if marker not in s:
-              raise RuntimeError('Invoice action insertion point not found')
-          s = s.replace(marker, insert, 1)
+                  );
+                }),'''
+              if old_end not in s:
+                  raise RuntimeError('Long-press closing block not found')
+              s = s.replace(old_end, new_end, 1)
 
           path.write_text(s)
           print('Ledger UI patched successfully')
           PY
+
+      - name: Persist source UI changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/screens/individual_detail_screen.dart
+          if ! git diff --cached --quiet; then
+            git commit -m "Add long-press edit and delete for entries [skip ci]"
+            git push
+          fi
 
       - name: Get dependencies
         run: flutter pub get
