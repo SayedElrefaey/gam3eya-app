@@ -81,15 +81,15 @@ jobs:
 
           replacements = {
               "const _goldPale = Color(0xFFF8E8B8);": "const _goldPale = Color(0xFFF8E8B8);\nconst _amountPale = Color(0xFFEAF3F5);",
+              "style: const TextStyle(color: gold, fontSize: 19, fontWeight: FontWeight.bold),": "style: const TextStyle(color: gold, fontSize: 17, fontWeight: FontWeight.bold),",
               "fontSize: 12.5,": "fontSize: 15.5,",
               "fontSize: 15,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),": "fontSize: 17,\n                          ),\n                          _ledgerCell(\n                            fmtNum(e.amount),",
               "final amountBackground = isDebit ? _goldPale : _successLight;": "final amountBackground = isDebit ? _amountPale : _successLight;",
-              "final amountColor = isDebit ? cover : _success;": "final amountColor = isDebit ? cover : _success;",
           }
 
           for old, new in replacements.items():
               if old not in s:
-                  raise RuntimeError(f'Expected source text not found: {old[:80]!r}')
+                  raise RuntimeError(f'Expected source text not found: {old[:100]!r}')
               s = s.replace(old, new, 1)
 
           marker = "              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),"
@@ -111,7 +111,45 @@ jobs:
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _sendInvoice,
+                      onPressed: () async {
+                        final p = _p!;
+                        final sym = currencySymbols[p.currency] ?? p.currency;
+                        final entries = [...p.entries]..sort((a, b) {
+                          final da = DateTime.parse(a.entryDate);
+                          final db = DateTime.parse(b.entryDate);
+                          final cmp = da.compareTo(db);
+                          return cmp != 0 ? cmp : a.id.compareTo(b.id);
+                        });
+                        double runningBalance = 0;
+                        final rows = <InvoiceRow>[];
+                        for (final e in entries) {
+                          final dt = DateTime.parse(e.entryDate);
+                          final isDebit = e.type == 'debit';
+                          final debit = isDebit ? e.amount : 0.0;
+                          final credit = isDebit ? 0.0 : e.amount;
+                          runningBalance += debit - credit;
+                          rows.add(InvoiceRow(
+                            date: _formatDateTime(dt),
+                            details: e.note.isEmpty ? 'حركة' : e.note,
+                            debit: debit,
+                            credit: credit,
+                            balance: runningBalance,
+                            currency: sym,
+                          ));
+                        }
+                        final bytes = await buildInvoicePdf(
+                          title: 'فاتورة حساب',
+                          subtitle: p.name,
+                          rows: rows,
+                          totals: const [],
+                        );
+                        if (!mounted) return;
+                        await shareInvoiceViaWhatsApp(
+                          bytes,
+                          'فاتورة ${p.name}',
+                          'فاتورة ${p.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym',
+                        );
+                      },
                       icon: const Icon(Icons.share),
                       label: const Text('إرسال واتساب'),
                       style: OutlinedButton.styleFrom(
