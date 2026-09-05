@@ -5,6 +5,12 @@ import '../invoice_helper.dart';
 import 'gam3eyas_tab.dart' show cover, gold;
 import 'individual_detail_screen.dart';
 
+const _paper = Color(0xFFFBF7EC);
+const _paper2 = Color(0xFFF2ECDA);
+const _line = Color(0xFFD8CFB0);
+const _success = Color(0xFF2F6B4F);
+const _danger = Color(0xFFA3402F);
+
 class IndividualsTab extends StatefulWidget {
   final Section section;
   const IndividualsTab({super.key, required this.section});
@@ -198,6 +204,7 @@ class _IndividualsTabState extends State<IndividualsTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _paper,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddForm,
         backgroundColor: cover,
@@ -216,26 +223,114 @@ class _IndividualsTabState extends State<IndividualsTab> {
                         Padding(padding: const EdgeInsets.all(40), child: Text('لا يوجد ${widget.section.name} بعد\nأضف عنصر وسجل حسابه', textAlign: TextAlign.center))
                       ])
                     : ListView.builder(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.fromLTRB(12, 24, 12, 90),
                         itemCount: _items.length,
                         itemBuilder: (ctx, i) {
                           final p = _items[i];
                           final sym = currencySymbols[p.currency] ?? p.currency;
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
+                          final balance = p.total;
+                          final hasReceivable = balance < 0;
+                          final statusColor = hasReceivable ? _success : _danger;
+                          final statusBg = hasReceivable ? const Color(0xFFE9F6EC) : const Color(0xFFF9E9E7);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: _line),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
                               onTap: () async {
                                 await Navigator.push(context,
                                     MaterialPageRoute(builder: (_) => IndividualDetailScreen(id: p.id)));
                                 _load();
                               },
-                              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('${p.phone.isEmpty ? 'بدون رقم هاتف' : p.phone} · الإجمالي ${fmtNum(p.total)} $sym'),
-                              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                Chip(label: Text(sym)),
-                                IconButton(icon: const Icon(Icons.edit, color: cover), onPressed: () => _edit(p)),
-                                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _delete(p)),
-                              ]),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                child: Directionality(
+                                  textDirection: TextDirection.rtl,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: statusBg,
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        child: Icon(
+                                          Icons.arrow_upward_rounded,
+                                          color: statusColor,
+                                          size: 32,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              '${fmtNum(balance.abs())} $sym',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: statusColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        children: [
+                                          Container(
+                                            width: 38,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: gold,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '${p.entries.length}',
+                                              style: TextStyle(
+                                                color: cover,
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'حركات',
+                                            style: TextStyle(fontSize: 10, color: cover, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           );
                         },
