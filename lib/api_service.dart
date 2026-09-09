@@ -122,11 +122,7 @@ class ApiService {
   }
 
   static Future<void> addGam3eya({required int sectionId, required String name, required String startDate, required int months, required double monthlyAmount, required String currency, List<int> myTurnMonths = const []}) async {
-    final res = await _client.post(
-      _uri('gam3eyas'),
-      headers: _headers,
-      body: jsonEncode({'sectionId': sectionId, 'name': name, 'startDate': startDate, 'months': months, 'monthlyAmount': monthlyAmount, 'currency': currency, 'myTurnMonths': myTurnMonths}),
-    );
+    final res = await _client.post(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'startDate': startDate, 'months': months, 'monthlyAmount': monthlyAmount, 'currency': currency, 'myTurnMonths': myTurnMonths}));
     await _decode(res);
   }
 
