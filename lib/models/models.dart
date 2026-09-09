@@ -2,13 +2,15 @@ class Section {
   final int id;
   final String name;
   final String type; // gam3eya / individual
+  final bool hasTurns;
 
-  Section({required this.id, required this.name, required this.type});
+  Section({required this.id, required this.name, required this.type, required this.hasTurns});
 
   factory Section.fromJson(Map<String, dynamic> j) => Section(
         id: int.parse(j['id'].toString()),
         name: j['name'].toString(),
         type: j['type'].toString(),
+        hasTurns: j['has_turns'].toString() == '1' || j['hasTurns'] == true,
       );
 }
 
@@ -45,6 +47,7 @@ class Gam3eya {
   final double monthlyAmount;
   final String currency;
   final List<ScheduleItem> schedule;
+  final List<int> myTurns;
 
   Gam3eya({
     required this.id,
@@ -55,6 +58,7 @@ class Gam3eya {
     required this.monthlyAmount,
     required this.currency,
     required this.schedule,
+    required this.myTurns,
   });
 
   double get total => schedule.fold(0.0, (a, s) => a + s.amount);
@@ -73,6 +77,9 @@ class Gam3eya {
         currency: j['currency'].toString(),
         schedule: (j['schedule'] as List)
             .map((s) => ScheduleItem.fromJson(s))
+            .toList(),
+        myTurns: (j['my_turns'] as List? ?? const [])
+            .map((v) => int.parse(v.toString()))
             .toList(),
       );
 }
