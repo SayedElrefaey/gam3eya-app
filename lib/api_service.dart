@@ -14,7 +14,6 @@ class ApiException implements Exception {
 
 class ApiService {
   static const String defaultServerUrl = 'https://invoice.oxserver.net/api.php';
-
   static String? baseUrl;
   static String? token;
   static String? username;
@@ -59,40 +58,26 @@ class ApiService {
   static bool get isLoggedIn => token != null && token!.isNotEmpty && baseUrl != null;
 
   static Uri _uri(String endpoint, [Map<String, String>? extra]) {
-    final params = {
-      'endpoint': endpoint,
-      if (token != null && token!.isNotEmpty) 'token': token!,
-      ...?extra,
-    };
+    final params = {'endpoint': endpoint, if (token != null && token!.isNotEmpty) 'token': token!, ...?extra};
     return Uri.parse(baseUrl!).replace(queryParameters: params);
   }
 
-  static Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
-      };
+  static Map<String, String> get _headers => {'Content-Type': 'application/json', if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token'};
 
   static Future<Map<String, dynamic>> _decode(http.Response res) async {
     Map<String, dynamic> data = {};
-    try {
-      data = jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (_) {
+    try { data = jsonDecode(res.body) as Map<String, dynamic>; }
+    catch (_) {
       final preview = res.body.length > 300 ? res.body.substring(0, 300) : res.body;
       throw ApiException('استجابة غير متوقعة من السيرفر (كود ${res.statusCode}):\n$preview');
     }
-    if (res.statusCode >= 400) {
-      throw ApiException(data['error']?.toString() ?? 'حدث خطأ');
-    }
+    if (res.statusCode >= 400) throw ApiException(data['error']?.toString() ?? 'حدث خطأ');
     return data;
   }
 
   static Future<void> login(String user, String pass) async {
     baseUrl = defaultServerUrl;
-    final res = await _client.post(
-      _uri('login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': user, 'password': pass}),
-    );
+    final res = await _client.post(_uri('login'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'username': user, 'password': pass}));
     final data = await _decode(res);
     token = data['token'].toString();
     username = data['username'].toString();
@@ -100,13 +85,9 @@ class ApiService {
   }
 
   static Future<void> logout() async {
-    try {
-      await _client.post(_uri('logout_token'), headers: _headers);
-    } catch (_) {}
+    try { await _client.post(_uri('logout_token'), headers: _headers); } catch (_) {}
     await clearSession();
   }
-
-  // ---------------- Sections ----------------
 
   static Future<List<Section>> getSections() async {
     final res = await _client.get(_uri('sections'), headers: _headers);
@@ -116,11 +97,7 @@ class ApiService {
   }
 
   static Future<int> createSection(String name, String type, {bool hasTurns = false}) async {
-    final res = await _client.post(
-      _uri('sections'),
-      headers: _headers,
-      body: jsonEncode({'name': name, 'type': type, 'hasTurns': hasTurns}),
-    );
+    final res = await _client.post(_uri('sections'), headers: _headers, body: jsonEncode({'name': name, 'type': type, 'hasTurns': hasTurns}));
     final data = await _decode(res);
     return int.parse(data['id'].toString());
   }
@@ -128,11 +105,7 @@ class ApiService {
   static Future<void> renameSection(int id, String name, {bool? hasTurns}) async {
     final body = <String, dynamic>{'id': id, 'name': name};
     if (hasTurns != null) body['hasTurns'] = hasTurns;
-    final res = await _client.put(
-      _uri('sections'),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
+    final res = await _client.put(_uri('sections'), headers: _headers, body: jsonEncode(body));
     await _decode(res);
   }
 
@@ -140,8 +113,6 @@ class ApiService {
     final res = await _client.delete(_uri('sections', {'id': '$id'}), headers: _headers);
     await _decode(res);
   }
-
-  // ---------------- Gam3eyas ----------------
 
   static Future<List<Gam3eya>> getGam3eyas() async {
     final res = await _client.get(_uri('gam3eyas'), headers: _headers);
@@ -162,35 +133,19 @@ class ApiService {
     final res = await _client.post(
       _uri('gam3eyas'),
       headers: _headers,
-      body: jsonEncode({
-        'sectionId': sectionId,
-        'name': name,
-        'startDate': startDate,
-        'months': months,
-        'monthlyAmount': monthlyAmount,
-        'currency': currency,
-        'myTurnMonths': myTurnMonths,
-      }),
+      body: jsonEncode({'sectionId': sectionId, 'name': name, 'startDate': startDate, 'months': months, 'monthlyAmount': monthlyAmount, 'currency': currency, 'myTurnMonths': myTurnMonths}),
     );
     await _decode(res);
   }
 
   static Future<void> setMyTurns(int gam3eyaId, List<int> months) async {
     final cleaned = months.toSet().toList()..sort();
-    final res = await _client.post(
-      _uri('set_my_turns'),
-      headers: _headers,
-      body: jsonEncode({'gam3eyaId': gam3eyaId, 'months': cleaned}),
-    );
+    final res = await _client.post(_uri('set_my_turns'), headers: _headers, body: jsonEncode({'gam3eyaId': gam3eyaId, 'months': cleaned}));
     await _decode(res);
   }
 
   static Future<void> renameGam3eya(int id, String name) async {
-    final res = await _client.put(
-      _uri('gam3eyas'),
-      headers: _headers,
-      body: jsonEncode({'id': id, 'name': name}),
-    );
+    final res = await _client.put(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'id': id, 'name': name}));
     await _decode(res);
   }
 
@@ -200,15 +155,9 @@ class ApiService {
   }
 
   static Future<void> togglePaid(int scheduleId) async {
-    final res = await _client.post(
-      _uri('toggle_paid'),
-      headers: _headers,
-      body: jsonEncode({'id': scheduleId}),
-    );
+    final res = await _client.post(_uri('toggle_paid'), headers: _headers, body: jsonEncode({'id': scheduleId}));
     await _decode(res);
   }
-
-  // ---------------- Individuals ----------------
 
   static Future<List<Individual>> getIndividuals() async {
     final res = await _client.get(_uri('individuals'), headers: _headers);
@@ -217,31 +166,13 @@ class ApiService {
     return list.map((e) => Individual.fromJson(e)).toList();
   }
 
-  static Future<void> addIndividual({
-    required int sectionId,
-    required String name,
-    required String phone,
-    required String currency,
-  }) async {
-    final res = await _client.post(
-      _uri('individuals'),
-      headers: _headers,
-      body: jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency}),
-    );
+  static Future<void> addIndividual({required int sectionId, required String name, required String phone, required String currency}) async {
+    final res = await _client.post(_uri('individuals'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency}));
     await _decode(res);
   }
 
-  static Future<void> updateIndividual({
-    required int id,
-    required String name,
-    required String phone,
-    required String currency,
-  }) async {
-    final res = await _client.put(
-      _uri('individuals'),
-      headers: _headers,
-      body: jsonEncode({'id': id, 'name': name, 'phone': phone, 'currency': currency}),
-    );
+  static Future<void> updateIndividual({required int id, required String name, required String phone, required String currency}) async {
+    final res = await _client.put(_uri('individuals'), headers: _headers, body: jsonEncode({'id': id, 'name': name, 'phone': phone, 'currency': currency}));
     await _decode(res);
   }
 
@@ -250,33 +181,13 @@ class ApiService {
     await _decode(res);
   }
 
-  static Future<void> addEntry({
-    required int individualId,
-    required String note,
-    required double amount,
-    required String type,
-    required String date,
-  }) async {
-    final res = await _client.post(
-      _uri('entries'),
-      headers: _headers,
-      body: jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date}),
-    );
+  static Future<void> addEntry({required int individualId, required String note, required double amount, required String type, required String date}) async {
+    final res = await _client.post(_uri('entries'), headers: _headers, body: jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date}));
     await _decode(res);
   }
 
-  static Future<void> updateEntry({
-    required int id,
-    required String note,
-    required double amount,
-    required String type,
-    required String date,
-  }) async {
-    final res = await _client.put(
-      _uri('entries'),
-      headers: _headers,
-      body: jsonEncode({'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date}),
-    );
+  static Future<void> updateEntry({required int id, required String note, required double amount, required String type, required String date}) async {
+    final res = await _client.put(_uri('entries'), headers: _headers, body: jsonEncode({'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date}));
     await _decode(res);
   }
 
