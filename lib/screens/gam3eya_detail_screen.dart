@@ -28,6 +28,7 @@ class Gam3eyaDetailScreen extends StatefulWidget {
 class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
   Gam3eya? _g;
   String? _error;
+  bool _turnEnabled = false;
 
   @override
   void initState() {
@@ -37,9 +38,17 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
 
   Future<void> _load() async {
     try {
-      final list = await ApiService.getGam3eyas();
-      final g = list.firstWhere((x) => x.id == widget.id);
-      if (mounted) setState(() { _g = g; _error = null; });
+      final results = await Future.wait([ApiService.getGam3eyas(), ApiService.getSections()]);
+      final gam3eyas = results[0] as List<Gam3eya>;
+      final sections = results[1] as List<Section>;
+      final g = gam3eyas.firstWhere((x) => x.id == widget.id);
+      final section = sections.where((s) => s.id == g.sectionId).firstOrNull;
+      if (!mounted) return;
+      setState(() {
+        _g = g;
+        _turnEnabled = section?.hasTurns ?? false;
+        _error = null;
+      });
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
@@ -48,7 +57,7 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
   Future<void> _togglePaid(int scheduleId) async {
     try {
       await ApiService.togglePaid(scheduleId);
-      _load();
+      await _load();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
@@ -144,15 +153,10 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(leading: const Icon(Icons.print), title: const Text('طباعة / حفظ PDF'), onTap: () async { Navigator.pop(ctx); await previewInvoicePdf(bytes, 'فاتورة ${g.name}'); }),
-            ListTile(leading: const Icon(Icons.share), title: const Text('إرسال عبر واتساب / مشاركة'), onTap: () async { Navigator.pop(ctx); await shareInvoiceViaWhatsApp(bytes, 'فاتورة ${g.name}', 'فاتورة ${g.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym'); }),
-          ]),
-        ),
-      ),
+      builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(leading: const Icon(Icons.print), title: const Text('طباعة / حفظ PDF'), onTap: () async { Navigator.pop(ctx); await previewInvoicePdf(bytes, 'فاتورة ${g.name}'); }),
+        ListTile(leading: const Icon(Icons.share), title: const Text('إرسال عبر واتساب / مشاركة'), onTap: () async { Navigator.pop(ctx); await shareInvoiceViaWhatsApp(bytes, 'فاتورة ${g.name}', 'فاتورة ${g.name} - الرصيد: ${fmtNum(runningBalance.abs())} $sym'); }),
+      ]))),
     );
   }
 
@@ -184,21 +188,27 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
     if (_g == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final g = _g!;
     final sym = currencySymbols[g.currency] ?? g.currency;
-    final total = g.total;
-    final paid = g.paidTotal;
-    final remaining = total - paid;
+    final remaining = g.total - g.paidTotal;
     final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}';
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: _paper,
-        appBar: AppBar(backgroundColor: cover, foregroundColor: Colors.white, title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)), actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) { if (v == 'invoice') _sendInvoice(); if (v == 'delete') _delete(); },
-            itemBuilder: (_) => const [PopupMenuItem(value: 'invoice', child: Text('فاتورة PDF')), PopupMenuItem(value: 'delete', child: Text('حذف الجمعية'))],
-          ),
-        ]),
+        appBar: AppBar(
+          backgroundColor: cover,
+          foregroundColor: Colors.white,
+          title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          actions: [
+            PopupMenuButton<String>(
+              onSelected: (v) { if (v == 'invoice') _sendInvoice(); if (v == 'delete') _delete(); },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'invoice', child: Text('فاتورة PDF')),
+                PopupMenuItem(value: 'delete', child: Text('حذف الجمعية')),
+              ],
+            ),
+          ],
+        ),
         body: RefreshIndicator(
           onRefresh: _load,
           color: cover,
@@ -207,16 +217,16 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
             children: [
               Row(children: [
                 _statCard('القسط الشهري', '${fmtNum(g.monthlyAmount)} $sym'),
-                _statCard('الإجمالي', '${fmtNum(total)} $sym'),
+                _statCard('الإجمالي', '${fmtNum(g.total)} $sym'),
                 _statCard('المدفوع', '${g.paidCount}/${g.months}'),
               ]),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: _statCard('المتبقي', '${fmtNum(remaining)} $sym')),
-                if (g.myTurns.isNotEmpty || true) Expanded(child: _turnCard(turnsText)),
+                _statCard('المتبقي', '${fmtNum(remaining)} $sym'),
+                if (_turnEnabled) _turnCard(turnsText),
               ]),
-              const SizedBox(height: 12),
-              if (g.myTurns.isNotEmpty || true) ...[
+              const SizedBox(height: 10),
+              if (_turnEnabled) ...[
                 Align(
                   alignment: Alignment.centerRight,
                   child: OutlinedButton.icon(
@@ -228,7 +238,6 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
                 const SizedBox(height: 10),
               ],
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(9), border: Border.all(color: _line)),
                 child: Column(children: [
                   Container(
@@ -242,21 +251,27 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
                     ]),
                   ),
                   ...g.schedule.map((s) {
-                    final isTurn = g.myTurns.contains(s.monthIdx);
+                    final isTurn = _turnEnabled && g.myTurns.contains(s.monthIdx);
                     return Container(
                       color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),
-                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 5),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
                       child: Row(children: [
                         Expanded(flex: 8, child: Text('${s.monthIdx}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, color: cover, fontSize: 15))),
                         Expanded(flex: 20, child: Text(_fmtDate(s.dueDate), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, color: cover, fontSize: 15))),
                         Expanded(flex: 22, child: Text('${fmtNum(s.amount)} $sym', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, color: isTurn ? const Color(0xFF1E2E6B) : cover, fontSize: 15))),
-                        Expanded(flex: 25, child: FittedBox(fit: BoxFit.scaleDown, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          if (s.paid)
-                            TextButton(onPressed: () => _togglePaid(s.id), child: const Text('✓ تم السداد — تراجع', style: TextStyle(color: _success, fontWeight: FontWeight.bold)))
-                          else
-                            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: gold, foregroundColor: cover), onPressed: () => _togglePaid(s.id), child: const Text('دفع')),
-                          if (isTurn) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.star, color: _turnBlue, size: 18)),
-                        ]))),
+                        Expanded(
+                          flex: 25,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              if (s.paid)
+                                TextButton(onPressed: () => _togglePaid(s.id), child: const Text('✓ تم السداد — تراجع', style: TextStyle(color: _success, fontWeight: FontWeight.bold)))
+                              else
+                                ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: gold, foregroundColor: cover), onPressed: () => _togglePaid(s.id), child: const Text('دفع')),
+                              if (isTurn) const Padding(padding: EdgeInsets.only(right: 4), child: Icon(Icons.star, color: _turnBlue, size: 18)),
+                            ]),
+                          ),
+                        ),
                       ]),
                     );
                   }),
@@ -267,8 +282,10 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: OutlinedButton.icon(onPressed: _sendInvoice, icon: const Icon(Icons.picture_as_pdf), label: const Text('فاتورة PDF'))),
-                const SizedBox(width: 10),
-                Expanded(child: OutlinedButton.icon(onPressed: _showTurnForm, icon: const Icon(Icons.star, color: _turnBlue), label: const Text('الأدوار'))),
+                if (_turnEnabled) ...[
+                  const SizedBox(width: 10),
+                  Expanded(child: OutlinedButton.icon(onPressed: _showTurnForm, icon: const Icon(Icons.star, color: _turnBlue), label: const Text('الأدوار'))),
+                ],
               ]),
               const SizedBox(height: 60),
             ],
