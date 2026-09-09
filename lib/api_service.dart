@@ -121,15 +121,7 @@ class ApiService {
     return list.map((e) => Gam3eya.fromJson(e)).toList();
   }
 
-  static Future<void> addGam3eya({
-    required int sectionId,
-    required String name,
-    required String startDate,
-    required int months,
-    required double monthlyAmount,
-    required String currency,
-    List<int> myTurnMonths = const [],
-  }) async {
+  static Future<void> addGam3eya({required int sectionId, required String name, required String startDate, required int months, required double monthlyAmount, required String currency, List<int> myTurnMonths = const []}) async {
     final res = await _client.post(
       _uri('gam3eyas'),
       headers: _headers,
