@@ -13,7 +13,6 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  // رابط السيرفر مثبّت هنا مرة واحدة - عدّله لو غيّرت الدومين مستقبلًا
   static const String defaultServerUrl = 'https://invoice.oxserver.net/api.php';
 
   static String? baseUrl;
@@ -24,15 +23,9 @@ class ApiService {
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // نفرض الرابط الثابت دايمًا، عشان نمسح أي قيمة قديمة غلط اتخزنت قبل كده
     baseUrl = defaultServerUrl;
     await prefs.setString('baseUrl', defaultServerUrl);
-
-    // التوكن محفوظ في Secure Storage بدل SharedPreferences.
     token = await _secureStorage.read(key: 'token');
-
-    // ترحيل التوكن القديم تلقائيًا لو كان محفوظًا بالإصدار السابق.
     if (token == null || token!.isEmpty) {
       final legacyToken = prefs.getString('token');
       if (legacyToken != null && legacyToken.isNotEmpty) {
@@ -41,7 +34,6 @@ class ApiService {
         await prefs.remove('token');
       }
     }
-
     username = prefs.getString('username');
   }
 
@@ -50,7 +42,6 @@ class ApiService {
     if (baseUrl != null) await prefs.setString('baseUrl', baseUrl!);
     if (token != null && token!.isNotEmpty) {
       await _secureStorage.write(key: 'token', value: token!);
-      // إزالة أي نسخة قديمة غير آمنة من التوكن.
       await prefs.remove('token');
     }
     if (username != null) await prefs.setString('username', username!);
@@ -87,8 +78,7 @@ class ApiService {
       data = jsonDecode(res.body) as Map<String, dynamic>;
     } catch (_) {
       final preview = res.body.length > 300 ? res.body.substring(0, 300) : res.body;
-      throw ApiException(
-          'استجابة غير متوقعة من السيرفر (كود ${res.statusCode}):\n$preview');
+      throw ApiException('استجابة غير متوقعة من السيرفر (كود ${res.statusCode}):\n$preview');
     }
     if (res.statusCode >= 400) {
       throw ApiException(data['error']?.toString() ?? 'حدث خطأ');
@@ -125,30 +115,29 @@ class ApiService {
     return list.map((e) => Section.fromJson(e)).toList();
   }
 
-  static Future<int> createSection(String name, String type) async {
+  static Future<int> createSection(String name, String type, {bool hasTurns = false}) async {
     final res = await _client.post(
       _uri('sections'),
       headers: _headers,
-      body: jsonEncode({'name': name, 'type': type}),
+      body: jsonEncode({'name': name, 'type': type, 'hasTurns': hasTurns}),
     );
     final data = await _decode(res);
     return int.parse(data['id'].toString());
   }
 
-  static Future<void> renameSection(int id, String name) async {
+  static Future<void> renameSection(int id, String name, {bool? hasTurns}) async {
+    final body = <String, dynamic>{'id': id, 'name': name};
+    if (hasTurns != null) body['hasTurns'] = hasTurns;
     final res = await _client.put(
       _uri('sections'),
       headers: _headers,
-      body: jsonEncode({'id': id, 'name': name}),
+      body: jsonEncode(body),
     );
     await _decode(res);
   }
 
   static Future<void> deleteSection(int id) async {
-    final res = await _client.delete(
-      _uri('sections', {'id': '$id'}),
-      headers: _headers,
-    );
+    final res = await _client.delete(_uri('sections', {'id': '$id'}), headers: _headers);
     await _decode(res);
   }
 
@@ -168,6 +157,7 @@ class ApiService {
     required int months,
     required double monthlyAmount,
     required String currency,
+    List<int> myTurnMonths = const [],
   }) async {
     final res = await _client.post(
       _uri('gam3eyas'),
@@ -179,7 +169,18 @@ class ApiService {
         'months': months,
         'monthlyAmount': monthlyAmount,
         'currency': currency,
+        'myTurnMonths': myTurnMonths,
       }),
+    );
+    await _decode(res);
+  }
+
+  static Future<void> setMyTurns(int gam3eyaId, List<int> months) async {
+    final cleaned = months.toSet().toList()..sort();
+    final res = await _client.post(
+      _uri('set_my_turns'),
+      headers: _headers,
+      body: jsonEncode({'gam3eyaId': gam3eyaId, 'months': cleaned}),
     );
     await _decode(res);
   }
@@ -194,10 +195,7 @@ class ApiService {
   }
 
   static Future<void> deleteGam3eya(int id) async {
-    final res = await _client.delete(
-      _uri('gam3eyas', {'id': '$id'}),
-      headers: _headers,
-    );
+    final res = await _client.delete(_uri('gam3eyas', {'id': '$id'}), headers: _headers);
     await _decode(res);
   }
 
@@ -228,12 +226,7 @@ class ApiService {
     final res = await _client.post(
       _uri('individuals'),
       headers: _headers,
-      body: jsonEncode({
-        'sectionId': sectionId,
-        'name': name,
-        'phone': phone,
-        'currency': currency,
-      }),
+      body: jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency}),
     );
     await _decode(res);
   }
@@ -247,17 +240,13 @@ class ApiService {
     final res = await _client.put(
       _uri('individuals'),
       headers: _headers,
-      body: jsonEncode(
-          {'id': id, 'name': name, 'phone': phone, 'currency': currency}),
+      body: jsonEncode({'id': id, 'name': name, 'phone': phone, 'currency': currency}),
     );
     await _decode(res);
   }
 
   static Future<void> deleteIndividual(int id) async {
-    final res = await _client.delete(
-      _uri('individuals', {'id': '$id'}),
-      headers: _headers,
-    );
+    final res = await _client.delete(_uri('individuals', {'id': '$id'}), headers: _headers);
     await _decode(res);
   }
 
@@ -271,13 +260,7 @@ class ApiService {
     final res = await _client.post(
       _uri('entries'),
       headers: _headers,
-      body: jsonEncode({
-        'individualId': individualId,
-        'note': note,
-        'amount': amount,
-        'type': type,
-        'date': date,
-      }),
+      body: jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date}),
     );
     await _decode(res);
   }
@@ -292,22 +275,13 @@ class ApiService {
     final res = await _client.put(
       _uri('entries'),
       headers: _headers,
-      body: jsonEncode({
-        'id': id,
-        'note': note,
-        'amount': amount,
-        'type': type,
-        'date': date,
-      }),
+      body: jsonEncode({'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date}),
     );
     await _decode(res);
   }
 
   static Future<void> deleteEntry(int id) async {
-    final res = await _client.delete(
-      _uri('entries', {'id': '$id'}),
-      headers: _headers,
-    );
+    final res = await _client.delete(_uri('entries', {'id': '$id'}), headers: _headers);
     await _decode(res);
   }
 }
