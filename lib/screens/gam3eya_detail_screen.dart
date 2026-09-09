@@ -278,8 +278,6 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
                 ]),
               ),
               const SizedBox(height: 12),
-              _summaryBox(g, sym),
-              const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: OutlinedButton.icon(onPressed: _sendInvoice, icon: const Icon(Icons.picture_as_pdf), label: const Text('فاتورة PDF'))),
                 if (_turnEnabled) ...[
@@ -323,19 +321,5 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
             ]),
           ),
         ),
-      );
-
-  Widget _summaryBox(Gam3eya g, String sym) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-        decoration: BoxDecoration(color: _paper2, border: Border.all(color: _line), borderRadius: BorderRadius.circular(9)),
-        child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text('إجمالي الأقساط: ${fmtNum(g.total)} $sym', style: const TextStyle(fontSize: 16, color: cover, fontWeight: FontWeight.w700)),
-            Text('المدفوع: ${fmtNum(g.paidTotal)} $sym', style: const TextStyle(fontSize: 16, color: _success, fontWeight: FontWeight.w700)),
-          ]),
-          const SizedBox(height: 5),
-          Text('المتبقي: ${fmtNum(g.total - g.paidTotal)} $sym', style: const TextStyle(fontSize: 18, color: cover, fontWeight: FontWeight.w900)),
-        ]),
       );
 }
