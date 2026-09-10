@@ -98,14 +98,15 @@ jobs:
 
           home = Path('lib/screens/home_screen.dart')
           h = home.read_text()
-          start = """          Container(\n            color: cover,\n            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),\n            child: Row(children: [\n"""
-          end = """            ]),\n          ),\n          Expanded(\n"""
-          if start not in h or end not in h:
-              raise RuntimeError('Home section selector markers not found')
-          a0 = h.index(start)
-          b0 = h.index(end, a0) + len("            ]),\n          ),\n")
+          start = h.find("          Container(\n            color: cover,\n            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),")
+          if start == -1:
+              raise RuntimeError('Home section selector start marker not found')
+          next_expanded = h.find("          Expanded(\n            child:", start)
+          if next_expanded == -1:
+              raise RuntimeError('Home section selector end marker not found')
+
           vertical = """          Container(\n            color: cover,\n            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),\n            child: Column(\n              crossAxisAlignment: CrossAxisAlignment.stretch,\n              children: [\n                ConstrainedBox(\n                  constraints: const BoxConstraints(maxHeight: 220),\n                  child: ListView.separated(\n                    shrinkWrap: true,\n                    itemCount: _sections.length,\n                    separatorBuilder: (_, __) => const SizedBox(height: 7),\n                    itemBuilder: (ctx, i) {\n                      final s = _sections[i];\n                      final isActive = s.id == _activeId;\n                      return Material(\n                        color: isActive ? gold : Colors.white.withOpacity(0.08),\n                        borderRadius: BorderRadius.circular(12),\n                        child: InkWell(\n                          borderRadius: BorderRadius.circular(12),\n                          onTap: () => setState(() => _activeId = s.id),\n                          child: Padding(\n                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),\n                            child: Row(children: [\n                              Expanded(\n                                child: Text(\n                                  s.name,\n                                  textAlign: TextAlign.right,\n                                  style: TextStyle(\n                                    color: isActive ? cover : Colors.white.withOpacity(0.85),\n                                    fontWeight: FontWeight.bold,\n                                    fontSize: 15,\n                                  ),\n                                ),\n                              ),\n                              Text(\n                                s.type == 'gam3eya'\n                                    ? (s.hasTurns ? 'جمعيات • أدوار' : 'جمعيات')\n                                    : 'حسابات أفراد',\n                                style: TextStyle(\n                                  color: isActive ? cover : Colors.white70,\n                                  fontSize: 11,\n                                ),\n                              ),\n                            ]),\n                          ),\n                        ),\n                      );\n                    },\n                  ),\n                ),\n                const SizedBox(height: 8),\n                Align(\n                  alignment: Alignment.centerRight,\n                  child: Material(\n                    color: Colors.white.withOpacity(0.08),\n                    shape: const CircleBorder(),\n                    child: IconButton(\n                      icon: const Icon(Icons.settings, color: Colors.white),\n                      onPressed: _openTabsManager,\n                    ),\n                  ),\n                ),\n              ],\n            ),\n          ),\n"""
-          h = h[:a0] + vertical + h[b0:]
+          h = h[:start] + vertical + h[next_expanded:]
           home.write_text(h)
           print('UI patches applied successfully')
           PY
