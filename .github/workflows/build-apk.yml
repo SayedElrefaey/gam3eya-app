@@ -68,6 +68,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path('lib/screens/individual_detail_screen.dart')
           s = path.read_text()
 
@@ -75,44 +76,18 @@ jobs:
               s = s.replace('const _goldPale = Color(0xFFF8E8B8);', 'const _goldPale = Color(0xFFF8E8B8);\nconst _amountPale = Color(0xFFEAF3F5);', 1)
 
           s = s.replace('fontSize: 12.5,', 'fontSize: 15.5,', 1)
-          s = s.replace('e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 15,', 'e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 17,', 1)
-          s = s.replace('final amountBackground = isDebit ? _goldPale : _successLight;', 'final amountBackground = isDebit ? _amountPale : _successLight;', 1)
-
-          if '_showEntryActions(Entry e)' not in s:
-              marker = '  Future<void> _deleteEntry(int id) async {'
-              method = '''  Future<void> _showEntryActions(Entry e) async {\n    await showModalBottomSheet(\n      context: context,\n      builder: (ctx) => SafeArea(\n        child: Column(\n          mainAxisSize: MainAxisSize.min,\n          children: [\n            ListTile(\n              leading: const Icon(Icons.edit, color: cover),\n              title: const Text('تعديل الحركة'),\n              onTap: () {\n                Navigator.pop(ctx);\n                _openEntryForm(existing: e);\n              },\n            ),\n            ListTile(\n              leading: const Icon(Icons.delete, color: Colors.red),\n              title: const Text('حذف الحركة'),\n              onTap: () async {\n                Navigator.pop(ctx);\n                final ok = await showDialog<bool>(\n                  context: context,\n                  builder: (dctx) => AlertDialog(\n                    title: const Text('حذف الحركة'),\n                    content: const Text('هل تريد حذف هذه الحركة؟'),\n                    actions: [\n                      TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('إلغاء')),\n                      TextButton(onPressed: () => Navigator.pop(dctx, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),\n                    ],\n                  ),\n                );\n                if (ok == true) await _deleteEntry(e.id);\n              },\n            ),\n          ],\n        ),\n      ),\n    );\n  }\n\n'''
-              if marker not in s:
-                  raise RuntimeError('Delete entry marker not found')
-              s = s.replace(marker, method + marker, 1)
-
-          old_row = '''                  return Container(\n                    margin: const EdgeInsets.only(bottom: 5),\n                    child: IntrinsicHeight(\n                      child: Row('''
-          new_row = '''                  return GestureDetector(\n                    onLongPress: () => _showEntryActions(e),\n                    child: Container(\n                      margin: const EdgeInsets.only(bottom: 5),\n                      child: IntrinsicHeight(\n                        child: Row('''
-          if 'onLongPress: () => _showEntryActions(e)' not in s:
-              if old_row not in s:
-                  raise RuntimeError('Ledger row marker not found')
-              s = s.replace(old_row, new_row, 1)
-              old_end = '''                      ),\n                    ),\n                  );\n                }),'''
-              new_end = '''                        ),\n                      ),\n                    ),\n                  );\n                }),'''
-              if old_end not in s:
-                  raise RuntimeError('Ledger row closing marker not found')
-              s = s.replace(old_end, new_end, 1)
-
-          # Make the details column visibly wider so longer descriptions fit better.
-          s = s.replace("_ledgerHeaderCell('التفاصيل', 13)", "_ledgerHeaderCell('التفاصيل', 20)", 1)
-          s = s.replace('e.note.isEmpty ? \'حركة\' : e.note, flex: 13,', "e.note.isEmpty ? 'حركة' : e.note, flex: 20,", 1)
-
-          # Debit = light red, credit = light green.
-          s = s.replace('final amountBackground = isDebit ? _amountPale : _successLight;', "final amountBackground = isDebit ? const Color(0xFFFDE2E2) : const Color(0xFFDCF0E3);", 1)
-          s = s.replace('final amountColor = isDebit ? cover : _success;', "final amountColor = isDebit ? const Color(0xFFA3402F) : const Color(0xFF2F6B4F);", 1)
-
-          marker = '              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'
-          if marker in s and "label: const Text('فاتورة PDF')" not in s:
-              buttons = '''              const SizedBox(height: 10),\n              Row(\n                children: [\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.picture_as_pdf),\n                      label: const Text('فاتورة PDF'),\n                    ),\n                  ),\n                  const SizedBox(width: 10),\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.share),\n                      label: const Text('إرسال واتساب'),\n                    ),\n                  ),\n                ],\n              ),\n              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'''
-              s = s.replace(marker, buttons, 1)
-
+          s = s.replace('e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 15,', 'e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 20,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 16,', 1)
+          s = s.replace('final amountBackground = isDebit ? _goldPale : _successLight;', 'final amountBackground = isDebit ? const Color(0xFFFDE2E2) : const Color(0xFFDCF0E3);', 1)
+          s = s.replace('final amountColor = isDebit ? cover : _success;', 'final amountColor = isDebit ? const Color(0xFFA3402F) : const Color(0xFF2F6B4F);', 1)
+          s = s.replace("_ledgerHeaderCell('التاريخ', 16),", "_ledgerHeaderCell('التاريخ', 14),", 1)
+          s = s.replace("_ledgerHeaderCell('التفاصيل', 13),", "_ledgerHeaderCell('التفاصيل', 20),", 1)
+          s = s.replace("_ledgerHeaderCell('المبلغ', 10),", "_ledgerHeaderCell('المبلغ', 8),", 1)
+          s = s.replace("_ledgerHeaderCell('الرصيد', 10),", "_ledgerHeaderCell('الرصيد', 8),", 1)
+          s = s.replace("_ledgerCell(_formatDateTime(dt), flex: 16,", "_ledgerCell(_formatDateTime(dt), flex: 14,", 1)
+          s = s.replace("_ledgerCell(fmtNum(e.amount), flex: 10,", "_ledgerCell(fmtNum(e.amount), flex: 8,", 1)
+          s = s.replace("_ledgerCell(fmtNum(balance), flex: 10,", "_ledgerCell(fmtNum(balance), flex: 8,", 1)
           path.write_text(s)
 
-          # Improve association schedule readability: every month becomes a clearly separated row.
           apath = Path('lib/screens/gam3eya_detail_screen.dart')
           a = apath.read_text()
           old = """                    return Container(\n                      color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),\n                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),"""
@@ -120,6 +95,18 @@ jobs:
           if old in a:
               a = a.replace(old, new, 1)
           apath.write_text(a)
+
+          home = Path('lib/screens/home_screen.dart')
+          h = home.read_text()
+          start = """          Container(\n            color: cover,\n            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),\n            child: Row(children: [\n"""
+          end = """            ]),\n          ),\n          Expanded(\n"""
+          if start not in h or end not in h:
+              raise RuntimeError('Home section selector markers not found')
+          a0 = h.index(start)
+          b0 = h.index(end, a0) + len("            ]),\n          ),\n")
+          vertical = """          Container(\n            color: cover,\n            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),\n            child: Column(\n              crossAxisAlignment: CrossAxisAlignment.stretch,\n              children: [\n                ConstrainedBox(\n                  constraints: const BoxConstraints(maxHeight: 220),\n                  child: ListView.separated(\n                    shrinkWrap: true,\n                    itemCount: _sections.length,\n                    separatorBuilder: (_, __) => const SizedBox(height: 7),\n                    itemBuilder: (ctx, i) {\n                      final s = _sections[i];\n                      final isActive = s.id == _activeId;\n                      return Material(\n                        color: isActive ? gold : Colors.white.withOpacity(0.08),\n                        borderRadius: BorderRadius.circular(12),\n                        child: InkWell(\n                          borderRadius: BorderRadius.circular(12),\n                          onTap: () => setState(() => _activeId = s.id),\n                          child: Padding(\n                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),\n                            child: Row(children: [\n                              Expanded(\n                                child: Text(\n                                  s.name,\n                                  textAlign: TextAlign.right,\n                                  style: TextStyle(\n                                    color: isActive ? cover : Colors.white.withOpacity(0.85),\n                                    fontWeight: FontWeight.bold,\n                                    fontSize: 15,\n                                  ),\n                                ),\n                              ),\n                              Text(\n                                s.type == 'gam3eya'\n                                    ? (s.hasTurns ? 'جمعيات • أدوار' : 'جمعيات')\n                                    : 'حسابات أفراد',\n                                style: TextStyle(\n                                  color: isActive ? cover : Colors.white70,\n                                  fontSize: 11,\n                                ),\n                              ),\n                            ]),\n                          ),\n                        ),\n                      );\n                    },\n                  ),\n                ),\n                const SizedBox(height: 8),\n                Align(\n                  alignment: Alignment.centerRight,\n                  child: Material(\n                    color: Colors.white.withOpacity(0.08),\n                    shape: const CircleBorder(),\n                    child: IconButton(\n                      icon: const Icon(Icons.settings, color: Colors.white),\n                      onPressed: _openTabsManager,\n                    ),\n                  ),\n                ),\n              ],\n            ),\n          ),\n"""
+          h = h[:a0] + vertical + h[b0:]
+          home.write_text(h)
           print('UI patches applied successfully')
           PY
 
