@@ -4,6 +4,7 @@ import '../models/models.dart';
 import 'login_screen.dart';
 import 'gam3eyas_tab.dart';
 import 'individuals_tab.dart';
+import 'section_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
     await ApiService.logout();
     if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  Future<void> _openSection(Section section) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SectionScreen(section: section)),
+    );
+    await _load();
   }
 
   Future<void> _openTabsManager() async {
@@ -219,77 +228,84 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Section? active;
-    if (_activeId != null) {
-      try { active = _sections.firstWhere((s) => s.id == _activeId); } catch (_) { active = null; }
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('دفتر الجمعيات والحسابات'),
-        actions: [IconButton(icon: const Icon(Icons.logout), tooltip: 'خروج (${ApiService.username ?? ''})', onPressed: _logout)],
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: cover,
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-            child: Row(children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: _sections.map((s) {
-                    final isActive = s.id == _activeId;
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Material(
-                        color: isActive ? gold : Colors.white.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: () => setState(() => _activeId = s.id),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                            child: Text(s.name, style: TextStyle(color: isActive ? cover : Colors.white.withOpacity(0.75), fontWeight: FontWeight.bold, fontSize: 14)),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList()),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Material(
-                color: Colors.white.withOpacity(0.08),
-                shape: const CircleBorder(),
-                child: IconButton(icon: const Icon(Icons.settings, color: Colors.white), onPressed: _openTabsManager),
-              ),
-            ]),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center)))
-                    : _sections.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                const Text('مفيش تبويبات لسه', textAlign: TextAlign.center),
-                                const SizedBox(height: 10),
-                                ElevatedButton(onPressed: _openTabsManager, child: const Text('إضافة أول تبويب')),
-                              ]),
-                            ),
-                          )
-                        : active == null
-                            ? const SizedBox.shrink()
-                            : active.type == 'gam3eya'
-                                ? Gam3eyasTab(section: active)
-                                : IndividualsTab(section: active),
-          ),
+        actions: [
+          IconButton(icon: const Icon(Icons.settings), tooltip: 'إدارة التبويبات', onPressed: _openTabsManager),
+          IconButton(icon: const Icon(Icons.logout), tooltip: 'خروج (${ApiService.username ?? ''})', onPressed: _logout),
         ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center)))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: cover,
+                  child: _sections.isEmpty
+                      ? ListView(children: [
+                          const SizedBox(height: 80),
+                          const Icon(Icons.menu_book_outlined, size: 60, color: gold),
+                          const SizedBox(height: 14),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: Text('مفيش أقسام لسه', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cover))),
+                          const SizedBox(height: 10),
+                          Padding(padding: const EdgeInsets.symmetric(horizontal: 80), child: ElevatedButton.icon(onPressed: _openTabsManager, icon: const Icon(Icons.add), label: const Text('إضافة قسم'))),
+                        ])
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
+                          itemCount: _sections.length,
+                          itemBuilder: (ctx, index) {
+                            final section = _sections[index];
+                            final isGam3eya = section.type == 'gam3eya';
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                side: const BorderSide(color: Color(0xFFD8CFB0)),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14),
+                                onTap: () => _openSection(section),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.chevron_left, color: gold, size: 30),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            Text(section.name, textAlign: TextAlign.right, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: cover)),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              isGam3eya ? 'جمعيات وتحصيل الأقساط' : 'حسابات أفراد وحركات مالية',
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(fontSize: 12, color: Color(0xFF6B6248)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Container(
+                                        width: 46,
+                                        height: 46,
+                                        decoration: BoxDecoration(
+                                          color: isGam3eya ? const Color(0xFFF2ECDA) : const Color(0xFFE3F0EA),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(isGam3eya ? Icons.groups_outlined : Icons.person_outline, color: cover, size: 27),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
     );
   }
 }
