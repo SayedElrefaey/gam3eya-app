@@ -97,13 +97,30 @@ jobs:
                   raise RuntimeError('Ledger row closing marker not found')
               s = s.replace(old_end, new_end, 1)
 
+          # Make the details column visibly wider so longer descriptions fit better.
+          s = s.replace("_ledgerHeaderCell('التفاصيل', 13)", "_ledgerHeaderCell('التفاصيل', 20)", 1)
+          s = s.replace('e.note.isEmpty ? \'حركة\' : e.note, flex: 13,', "e.note.isEmpty ? 'حركة' : e.note, flex: 20,", 1)
+
+          # Debit = light red, credit = light green.
+          s = s.replace('final amountBackground = isDebit ? _amountPale : _successLight;', "final amountBackground = isDebit ? const Color(0xFFFDE2E2) : const Color(0xFFDCF0E3);", 1)
+          s = s.replace('final amountColor = isDebit ? cover : _success;', "final amountColor = isDebit ? const Color(0xFFA3402F) : const Color(0xFF2F6B4F);", 1)
+
           marker = '              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'
           if marker in s and "label: const Text('فاتورة PDF')" not in s:
               buttons = '''              const SizedBox(height: 10),\n              Row(\n                children: [\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.picture_as_pdf),\n                      label: const Text('فاتورة PDF'),\n                    ),\n                  ),\n                  const SizedBox(width: 10),\n                  Expanded(\n                    child: OutlinedButton.icon(\n                      onPressed: _sendInvoice,\n                      icon: const Icon(Icons.share),\n                      label: const Text('إرسال واتساب'),\n                    ),\n                  ),\n                ],\n              ),\n              const SizedBox(height: 10),\n              _summaryBox(totalDebit, totalCredit, running, sym),'''
               s = s.replace(marker, buttons, 1)
 
           path.write_text(s)
-          print('Ledger UI features patched successfully')
+
+          # Improve association schedule readability: every month becomes a clearly separated row.
+          apath = Path('lib/screens/gam3eya_detail_screen.dart')
+          a = apath.read_text()
+          old = """                    return Container(\n                      color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),\n                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),"""
+          new = """                    return Container(\n                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),\n                      decoration: BoxDecoration(\n                        color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),\n                        border: Border(bottom: BorderSide(color: _line, width: 0.8)),\n                        borderRadius: BorderRadius.circular(4),\n                      ),\n                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 5),"""
+          if old in a:
+              a = a.replace(old, new, 1)
+          apath.write_text(a)
+          print('UI patches applied successfully')
           PY
 
       - name: Get dependencies
