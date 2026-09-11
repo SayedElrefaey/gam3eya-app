@@ -121,8 +121,33 @@ class ApiService {
     return list.map((e) => Gam3eya.fromJson(e)).toList();
   }
 
-  static Future<void> addGam3eya({required int sectionId, required String name, required String startDate, required int months, required double monthlyAmount, required String currency, List<int> myTurnMonths = const []}) async {
-    final res = await _client.post(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'startDate': startDate, 'months': months, 'monthlyAmount': monthlyAmount, 'currency': currency, 'myTurnMonths': myTurnMonths}));
+  static Future<void> addGam3eya({
+    required int sectionId,
+    required String name,
+    required String startDate,
+    required int months,
+    required double monthlyAmount,
+    required String currency,
+    int intervalMonths = 1,
+    List<int> myTurnMonths = const [],
+  }) async {
+    if (!const [1, 3, 6].contains(intervalMonths)) {
+      throw ApiException('دورية القسط غير صحيحة');
+    }
+    final res = await _client.post(
+      _uri('gam3eyas'),
+      headers: _headers,
+      body: jsonEncode({
+        'sectionId': sectionId,
+        'name': name,
+        'startDate': startDate,
+        'months': months,
+        'intervalMonths': intervalMonths,
+        'monthlyAmount': monthlyAmount,
+        'currency': currency,
+        'myTurnMonths': myTurnMonths,
+      }),
+    );
     await _decode(res);
   }
 
