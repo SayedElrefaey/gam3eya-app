@@ -38,13 +38,14 @@ class Gam3eya {
   final String name;
   final String startDate;
   final int months;
+  final int intervalMonths;
   final double monthlyAmount;
   final String currency;
   final List<ScheduleItem> schedule;
   final List<int> myTurns;
   final bool hasTurns;
 
-  Gam3eya({required this.id, required this.sectionId, required this.name, required this.startDate, required this.months, required this.monthlyAmount, required this.currency, required this.schedule, required this.myTurns, required this.hasTurns});
+  Gam3eya({required this.id, required this.sectionId, required this.name, required this.startDate, required this.months, required this.intervalMonths, required this.monthlyAmount, required this.currency, required this.schedule, required this.myTurns, required this.hasTurns});
 
   double get total => schedule.fold(0.0, (a, s) => a + s.amount);
   int get paidCount => schedule.where((s) => s.paid).length;
@@ -56,6 +57,7 @@ class Gam3eya {
         name: j['name'].toString(),
         startDate: j['start_date'].toString(),
         months: int.parse(j['months'].toString()),
+        intervalMonths: int.tryParse((j['interval_months'] ?? j['intervalMonths'] ?? 1).toString()) ?? 1,
         monthlyAmount: double.parse(j['monthly_amount'].toString()),
         currency: j['currency'].toString(),
         schedule: (j['schedule'] as List).map((s) => ScheduleItem.fromJson(s)).toList(),
