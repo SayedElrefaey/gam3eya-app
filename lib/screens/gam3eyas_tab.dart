@@ -53,12 +53,24 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
     }
   }
 
+  String _intervalLabel(int interval) {
+    switch (interval) {
+      case 3:
+        return 'كل 3 شهور';
+      case 6:
+        return 'كل 6 شهور';
+      default:
+        return 'شهري';
+    }
+  }
+
   Future<void> _openAddForm() async {
     final nameCtrl = TextEditingController();
     final monthsCtrl = TextEditingController(text: '12');
     final amountCtrl = TextEditingController();
     DateTime? startDate;
     String currency = 'EGP';
+    int intervalMonths = 1;
     final selectedTurns = <int>{};
     String? error;
 
@@ -93,15 +105,26 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                     controller: monthsCtrl,
                     textAlign: TextAlign.right,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'عدد الشهور', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'عدد الأقساط', border: OutlineInputBorder()),
                     onChanged: (_) => setSt(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    value: intervalMonths,
+                    decoration: const InputDecoration(labelText: 'دورية القسط', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('شهري')),
+                      DropdownMenuItem(value: 3, child: Text('كل 3 شهور')),
+                      DropdownMenuItem(value: 6, child: Text('كل 6 شهور')),
+                    ],
+                    onChanged: (v) => setSt(() => intervalMonths = v ?? 1),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: amountCtrl,
                     textAlign: TextAlign.right,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'مبلغ القسط الشهري', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'مبلغ القسط', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
@@ -146,7 +169,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                         children: [
                           const Text('تحديد أدوارك (اختياري)', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E2E6B))),
                           const SizedBox(height: 6),
-                          const Text('اختار الشهور التي يكون دورك فيها', style: TextStyle(fontSize: 12, color: Color(0xFF1E2E6B))),
+                          const Text('اختار أرقام الأقساط التي يكون دورك فيها', style: TextStyle(fontSize: 12, color: Color(0xFF1E2E6B))),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 6,
@@ -156,7 +179,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                               final selected = selectedTurns.contains(m);
                               return FilterChip(
                                 selected: selected,
-                                label: Text('شهر $m'),
+                                label: Text('قسط $m'),
                                 selectedColor: _turnBlue,
                                 checkmarkColor: Colors.white,
                                 labelStyle: TextStyle(color: selected ? Colors.white : const Color(0xFF1E2E6B), fontWeight: FontWeight.bold),
@@ -190,6 +213,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                             startDate: '${startDate!.year.toString().padLeft(4, '0')}-${startDate!.month.toString().padLeft(2, '0')}-${startDate!.day.toString().padLeft(2, '0')}',
                             months: m,
                             monthlyAmount: amount,
+                            intervalMonths: intervalMonths,
                             currency: currency,
                             myTurnMonths: selectedTurns.where((x) => x <= m).toList()..sort(),
                           );
@@ -311,10 +335,10 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                                       Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _paper2, borderRadius: BorderRadius.circular(20), border: Border.all(color: _line)), child: Text(currencySymbols[g.currency] ?? g.currency, style: const TextStyle(fontWeight: FontWeight.bold, color: cover))),
                                     ]),
                                     const SizedBox(height: 7),
-                                    Text('${g.months} شهر  •  مدفوع ${g.paidCount}/${g.months}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, color: Color(0xFF6B6248))),
+                                    Text('${g.months} قسط  •  ${_intervalLabel(g.intervalMonths)}  •  مدفوع ${g.paidCount}/${g.months}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, color: Color(0xFF6B6248))),
                                     const SizedBox(height: 10),
                                     Row(children: [
-                                      Expanded(child: _infoBox('القسط الشهري', '${fmtNum(g.monthlyAmount)} ${currencySymbols[g.currency] ?? g.currency}')),
+                                      Expanded(child: _infoBox('مبلغ القسط', '${fmtNum(g.monthlyAmount)} ${currencySymbols[g.currency] ?? g.currency}')),
                                       const SizedBox(width: 8),
                                       Expanded(child: _infoBox('المتبقي', '${fmtNum(remaining)} ${currencySymbols[g.currency] ?? g.currency}')),
                                     ]),
