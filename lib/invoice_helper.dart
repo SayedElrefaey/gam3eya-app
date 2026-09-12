@@ -17,6 +17,13 @@ String fmtNum(num n) {
   return '$intPart$dec';
 }
 
+String formatInvoiceDateTime(DateTime dt) {
+  final d = '${dt.day} / ${dt.month} / ${dt.year}';
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '$d $h:$m';
+}
+
 class InvoiceRow {
   final String date;
   final String details;
@@ -50,11 +57,27 @@ Future<Uint8List> buildInvoicePdf({
   final doc = pw.Document();
 
   if (title == 'فاتورة حساب') {
-    _addIndividualInvoicePage(doc: doc, theme: theme, regular: regular, bold: bold,
-        latinFallback: latinFallback, title: title, subtitle: subtitle, rows: rows);
+    _addIndividualInvoicePage(
+      doc: doc,
+      theme: theme,
+      regular: regular,
+      bold: bold,
+      latinFallback: latinFallback,
+      title: title,
+      subtitle: subtitle,
+      rows: rows,
+    );
   } else {
-    _addGam3eyaInvoicePage(doc: doc, theme: theme, regular: regular, bold: bold,
-        latinFallback: latinFallback, title: title, subtitle: subtitle, rows: rows);
+    _addGam3eyaInvoicePage(
+      doc: doc,
+      theme: theme,
+      regular: regular,
+      bold: bold,
+      latinFallback: latinFallback,
+      title: title,
+      subtitle: subtitle,
+      rows: rows,
+    );
   }
   return doc.save();
 }
@@ -74,10 +97,6 @@ void _addIndividualInvoicePage({
   final finalBalance = rows.isEmpty ? 0.0 : rows.last.balance;
   final currency = rows.isEmpty ? '' : rows.first.currency;
 
-  // pw.Table is laid out left-to-right. To match the web RTL table exactly,
-  // the children are supplied in reverse visual order:
-  // left -> right = الرصيد | له | عليه | التفاصيل | التاريخ
-  // so the visual rightmost column is التاريخ.
   final tableRows = <pw.TableRow>[
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFD9D9D9)),
@@ -141,9 +160,11 @@ void _addIndividualInvoicePage({
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
         pw.Text(title, textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
             style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
         pw.SizedBox(height: 2),
         pw.Text(subtitle, textAlign: pw.TextAlign.center,
+            textDirection: _directionForText(subtitle),
             style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback],
                 color: const PdfColor.fromInt(0xFF6B6248))),
         pw.SizedBox(height: 8),
@@ -209,9 +230,11 @@ void _addGam3eyaInvoicePage({
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
         pw.Text(title, textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
             style: pw.TextStyle(font: bold, fontSize: 17, fontFallback: [latinFallback])),
         pw.SizedBox(height: 2),
         pw.Text(subtitle, textAlign: pw.TextAlign.center,
+            textDirection: _directionForText(subtitle),
             style: pw.TextStyle(font: regular, fontSize: 11, fontFallback: [latinFallback])),
         pw.SizedBox(height: 8),
         pw.Table(
@@ -228,6 +251,11 @@ void _addGam3eyaInvoicePage({
   ));
 }
 
+pw.TextDirection _directionForText(String text) {
+  final hasArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  return hasArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+}
+
 pw.Widget _cell(String text, pw.Font font, pw.Font latinFallback, {
   bool center = false,
   PdfColor? textColor,
@@ -239,7 +267,7 @@ pw.Widget _cell(String text, pw.Font font, pw.Font latinFallback, {
     child: pw.Text(
       text,
       textAlign: center ? pw.TextAlign.center : pw.TextAlign.right,
-      textDirection: pw.TextDirection.rtl,
+      textDirection: _directionForText(text),
       style: pw.TextStyle(font: font, fontSize: fontSize, color: textColor, fontFallback: [latinFallback]),
     ),
   );
