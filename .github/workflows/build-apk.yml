@@ -77,8 +77,8 @@ jobs:
 
           s = s.replace('fontSize: 12.5,', 'fontSize: 15.5,', 1)
           s = s.replace('e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 13,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 15,', 'e.note.isEmpty ? \'حركة\' : e.note,\n                            flex: 20,\n                            background: Colors.white,\n                            textColor: Colors.black,\n                            fontSize: 16,', 1)
-          s = s.replace('final amountBackground = isDebit ? _goldPale : _successLight;', 'final amountBackground = isDebit ? const Color(0xFFFDE2E2) : const Color(0xFFDCF0E3);', 1)
-          s = s.replace('final amountColor = isDebit ? cover : _success;', 'final amountColor = isDebit ? const Color(0xFFA3402F) : const Color(0xFF2F6B4F);', 1)
+          s = s.replace('final amountBackground = isDebit ? _goldPale : _successLight;', 'final amountBackground = isDebit ? const Color(0xFFFDE2E2) : const Color(0xFF2F6B4F);', 1)
+          s = s.replace('final amountColor = isDebit ? cover : _success;', 'final amountColor = Colors.black;', 1)
           s = s.replace("_ledgerHeaderCell('التاريخ', 16),", "_ledgerHeaderCell('التاريخ', 14),", 1)
           s = s.replace("_ledgerHeaderCell('التفاصيل', 13),", "_ledgerHeaderCell('التفاصيل', 20),", 1)
           s = s.replace("_ledgerHeaderCell('المبلغ', 10),", "_ledgerHeaderCell('المبلغ', 8),", 1)
@@ -97,7 +97,6 @@ jobs:
           # Show the role summary card only when this association actually has selected turns.
           a = a.replace("final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}';", "final turnsText = 'دورك: ${g.myTurns.join(', ')}';", 1)
           a = a.replace("if (_turnEnabled) _turnCard(turnsText),", "if (_turnEnabled && g.myTurns.isNotEmpty) _turnCard(turnsText),", 1)
-          a = a.replace("if (_turnEnabled) ...[\n                Align(", "if (_turnEnabled) ...[\n                Align(", 1)
           apath.write_text(a)
 
           gpath = Path('lib/screens/gam3eyas_tab.dart')
