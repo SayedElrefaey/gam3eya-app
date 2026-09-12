@@ -94,7 +94,18 @@ jobs:
           new = """                    return Container(\n                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),\n                      decoration: BoxDecoration(\n                        color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),\n                        border: Border(bottom: BorderSide(color: _line, width: 0.8)),\n                        borderRadius: BorderRadius.circular(4),\n                      ),\n                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 5),"""
           if old in a:
               a = a.replace(old, new, 1)
+          # Show the role summary card only when this association actually has selected turns.
+          a = a.replace("final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}';", "final turnsText = 'دورك: ${g.myTurns.join(', ')}';", 1)
+          a = a.replace("if (_turnEnabled) _turnCard(turnsText),", "if (_turnEnabled && g.myTurns.isNotEmpty) _turnCard(turnsText),", 1)
+          a = a.replace("if (_turnEnabled) ...[\n                Align(", "if (_turnEnabled) ...[\n                Align(", 1)
           apath.write_text(a)
+
+          gpath = Path('lib/screens/gam3eyas_tab.dart')
+          g = gpath.read_text()
+          # Match the web behavior: don't show 'الدور غير محدد' when no turns are selected.
+          g = g.replace("final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}';", "final turnsText = 'دورك: ${g.myTurns.join(', ')}';", 1)
+          g = g.replace("if (widget.section.hasTurns) ...[", "if (widget.section.hasTurns && g.myTurns.isNotEmpty) ...[", 1)
+          gpath.write_text(g)
           print('UI patches applied successfully')
           PY
 
