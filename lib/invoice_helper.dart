@@ -18,10 +18,7 @@ String fmtNum(num n) {
 }
 
 String formatInvoiceDateTime(DateTime dt) {
-  final d = '${dt.day} / ${dt.month} / ${dt.year}';
-  final h = dt.hour.toString().padLeft(2, '0');
-  final m = dt.minute.toString().padLeft(2, '0');
-  return '$d $h:$m';
+  return '${dt.day} / ${dt.month} / ${dt.year}';
 }
 
 class InvoiceRow {
