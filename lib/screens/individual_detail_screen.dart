@@ -286,7 +286,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 5),
                       child: IntrinsicHeight(
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          _ledgerCell(_formatDateTime(dt), flex: 16, background: Colors.white, textColor: cover, fontSize: 15.5),
+                          _ledgerCell(_formatDate(dt), flex: 16, background: Colors.white, textColor: cover, fontSize: 15.5),
                           _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 13, background: Colors.white, textColor: Colors.black, fontSize: 17),
                           _ledgerCell(fmtNum(e.amount), flex: 10, background: amountBackground, textColor: amountColor, fontSize: 18, bold: true),
                           _ledgerCell(fmtNum(balance), flex: 10, background: balanceBackground, textColor: balanceColor, fontSize: 18, bold: true),
@@ -362,10 +362,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     ]),
   );
 
-  String _formatDateTime(DateTime dt) {
-    final d = '${dt.day}/${dt.month}/${dt.year}';
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '$d $h:$m';
+  String _formatDate(DateTime dt) {
+    return '${dt.day} / ${dt.month} / ${dt.year}';
   }
 }
