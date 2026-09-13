@@ -174,7 +174,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       runningBalance += debit - credit;
       totalDebit += debit;
       totalCredit += credit;
-      rows.add(InvoiceRow(date: _formatDateTime(DateTime.parse(e.entryDate)), details: e.note.isEmpty ? 'حركة' : e.note, debit: debit, credit: credit, balance: runningBalance, currency: sym));
+      rows.add(InvoiceRow(date: formatInvoiceDateTime(DateTime.parse(e.entryDate)), details: e.note.isEmpty ? 'حركة' : e.note, debit: debit, credit: credit, balance: runningBalance, currency: sym));
     }
     final bytes = await buildInvoicePdf(
       title: 'فاتورة حساب',
@@ -276,8 +276,8 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                   final isDebit = e.type == 'debit';
                   final balance = balances[e.id] ?? 0;
                   final dt = DateTime.parse(e.entryDate);
-                  final amountBackground = isDebit ? const Color(0xFFEAF3F5) : _successLight;
-                  final amountColor = isDebit ? cover : _success;
+                  final amountBackground = isDebit ? const Color(0xFFEA7B73) : const Color(0xFF8ED686);
+                  const amountColor = Colors.black;
                   final balanceBackground = balance >= 0 ? _goldPale : _successLight;
                   final balanceColor = balance >= 0 ? cover : _success;
                   return GestureDetector(
@@ -325,9 +325,28 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     _ledgerHeaderCell('الرصيد', 10),
   ]);
 
-  Widget _ledgerHeaderCell(String text, int flex) => Expanded(flex: flex, child: Container(height: 52, margin: const EdgeInsets.symmetric(horizontal: 2), alignment: Alignment.center, decoration: BoxDecoration(color: cover, borderRadius: BorderRadius.circular(4), border: Border.all(color: gold, width: 0.7)), child: FittedBox(fit: BoxFit.scaleDown, child: Text(text, style: const TextStyle(color: gold, fontSize: 19, fontWeight: FontWeight.bold)))));
+  Widget _ledgerHeaderCell(String text, int flex) => Expanded(
+    flex: flex,
+    child: Container(
+      height: 52,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: cover, borderRadius: BorderRadius.circular(4), border: Border.all(color: gold, width: 0.7)),
+      child: FittedBox(fit: BoxFit.scaleDown, child: Text(text, style: const TextStyle(color: gold, fontSize: 19, fontWeight: FontWeight.bold))),
+    ),
+  );
 
-  Widget _ledgerCell(String text, {required int flex, required Color background, required Color textColor, double fontSize = 16, bool bold = false}) => Expanded(flex: flex, child: Container(constraints: const BoxConstraints(minHeight: 52), margin: const EdgeInsets.symmetric(horizontal: 2), padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5), alignment: Alignment.center, decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(5), border: Border.all(color: _line, width: 0.7)), child: Text(text, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: bold ? FontWeight.w800 : FontWeight.w500))));
+  Widget _ledgerCell(String text, {required int flex, required Color background, required Color textColor, double fontSize = 16, bool bold = false}) => Expanded(
+    flex: flex,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 52),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(5), border: Border.all(color: _line, width: 0.7)),
+      child: Text(text, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: bold ? FontWeight.w800 : FontWeight.w500)),
+    ),
+  );
 
   Widget _summaryBox(double totalDebit, double totalCredit, double balance, String sym) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -343,5 +362,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     ]),
   );
 
-  String _formatDateTime(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
+  String _formatDateTime(DateTime dt) {
+    final d = '${dt.day}/${dt.month}/${dt.year}';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$d $h:$m';
+  }
 }
