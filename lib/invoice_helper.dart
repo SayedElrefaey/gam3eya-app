@@ -115,7 +115,7 @@ void _addIndividualInvoicePage({
       _cell(r.credit == 0 ? '0' : fmtNum(r.credit), bold, latinFallback, center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFF1E8A3C), padding: 8),
       _cell(r.debit == 0 ? '0' : fmtNum(r.debit), bold, latinFallback, center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
       _cell(r.details, bold, latinFallback, center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
-      _cell(r.date, bold, latinFallback, center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
+      _cell(r.date, bold, latinFallback, center: true, fontSize: 15, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 8),
     ])),
     pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFEDEDED)),
@@ -125,16 +125,6 @@ void _addIndividualInvoicePage({
         _cell(fmtNum(totalDebit), bold, latinFallback, center: true, fontSize: 16, textColor: const PdfColor.fromInt(0xFFA3002B), padding: 8),
         _cell('إجمالي العمليات', bold, latinFallback, center: true, fontSize: 16, padding: 8),
         _cell('', bold, latinFallback, center: true, fontSize: 16, padding: 8),
-      ],
-    ),
-    pw.TableRow(
-      decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF5B7B1)),
-      children: [
-        _cell('${fmtNum(finalBalance.abs())} $currency'.trim(), bold, latinFallback, center: true, fontSize: 20, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 9),
-        _cell('', bold, latinFallback, center: true, fontSize: 18, padding: 9),
-        _cell('', bold, latinFallback, center: true, fontSize: 18, padding: 9),
-        _cell(finalBalance >= 0 ? 'الرصيد الإجمالي - عليه' : 'الرصيد الإجمالي - له', bold, latinFallback, center: true, fontSize: 17, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 7),
-        _cell('', bold, latinFallback, center: true, fontSize: 18, padding: 9),
       ],
     ),
   ];
@@ -157,10 +147,26 @@ void _addIndividualInvoicePage({
             0: pw.FlexColumnWidth(1.05),
             1: pw.FlexColumnWidth(1.0),
             2: pw.FlexColumnWidth(1.05),
-            3: pw.FlexColumnWidth(1.95),
-            4: pw.FlexColumnWidth(1.0),
+            3: pw.FlexColumnWidth(1.65),
+            4: pw.FlexColumnWidth(1.25),
           },
           children: tableRows,
+        ),
+        pw.Table(
+          border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFF999999), width: 0.65),
+          columnWidths: const {
+            0: pw.FlexColumnWidth(1.05),
+            1: pw.FlexColumnWidth(4.95),
+          },
+          children: [
+            pw.TableRow(
+              decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF5B7B1)),
+              children: [
+                _cell('${fmtNum(finalBalance.abs())} $currency'.trim(), bold, latinFallback, center: true, fontSize: 20, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 7),
+                _cell(finalBalance >= 0 ? 'الرصيد الإجمالي - عليه' : 'الرصيد الإجمالي - له', bold, latinFallback, center: true, fontSize: 17, textColor: const PdfColor.fromInt(0xFF1414A0), padding: 7),
+              ],
+            ),
+          ],
         ),
       ],
     ),
