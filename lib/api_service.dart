@@ -121,33 +121,9 @@ class ApiService {
     return list.map((e) => Gam3eya.fromJson(e)).toList();
   }
 
-  static Future<void> addGam3eya({
-    required int sectionId,
-    required String name,
-    required String startDate,
-    required int months,
-    required double monthlyAmount,
-    required String currency,
-    int intervalMonths = 1,
-    List<int> myTurnMonths = const [],
-  }) async {
-    if (!const [1, 3, 6].contains(intervalMonths)) {
-      throw ApiException('دورية القسط غير صحيحة');
-    }
-    final res = await _client.post(
-      _uri('gam3eyas'),
-      headers: _headers,
-      body: jsonEncode({
-        'sectionId': sectionId,
-        'name': name,
-        'startDate': startDate,
-        'months': months,
-        'intervalMonths': intervalMonths,
-        'monthlyAmount': monthlyAmount,
-        'currency': currency,
-        'myTurnMonths': myTurnMonths,
-      }),
-    );
+  static Future<void> addGam3eya({required int sectionId, required String name, required String startDate, required int months, required double monthlyAmount, required String currency, int intervalMonths = 1, List<int> myTurnMonths = const [], int sortOrder = 0}) async {
+    if (!const [1, 3, 6].contains(intervalMonths)) throw ApiException('دورية القسط غير صحيحة');
+    final res = await _client.post(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'startDate': startDate, 'months': months, 'intervalMonths': intervalMonths, 'monthlyAmount': monthlyAmount, 'currency': currency, 'myTurnMonths': myTurnMonths, 'sortOrder': sortOrder}));
     await _decode(res);
   }
 
@@ -157,8 +133,10 @@ class ApiService {
     await _decode(res);
   }
 
-  static Future<void> renameGam3eya(int id, String name) async {
-    final res = await _client.put(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'id': id, 'name': name}));
+  static Future<void> renameGam3eya(int id, String name, {int? sortOrder}) async {
+    final body = <String, dynamic>{'id': id, 'name': name};
+    if (sortOrder != null) body['sortOrder'] = sortOrder;
+    final res = await _client.put(_uri('gam3eyas'), headers: _headers, body: jsonEncode(body));
     await _decode(res);
   }
 
@@ -179,13 +157,15 @@ class ApiService {
     return list.map((e) => Individual.fromJson(e)).toList();
   }
 
-  static Future<void> addIndividual({required int sectionId, required String name, required String phone, required String currency}) async {
-    final res = await _client.post(_uri('individuals'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency}));
+  static Future<void> addIndividual({required int sectionId, required String name, required String phone, required String currency, int sortOrder = 0}) async {
+    final res = await _client.post(_uri('individuals'), headers: _headers, body: jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency, 'sortOrder': sortOrder}));
     await _decode(res);
   }
 
-  static Future<void> updateIndividual({required int id, required String name, required String phone, required String currency}) async {
-    final res = await _client.put(_uri('individuals'), headers: _headers, body: jsonEncode({'id': id, 'name': name, 'phone': phone, 'currency': currency}));
+  static Future<void> updateIndividual({required int id, required String name, required String phone, required String currency, int? sortOrder}) async {
+    final body = <String, dynamic>{'id': id, 'name': name, 'phone': phone, 'currency': currency};
+    if (sortOrder != null) body['sortOrder'] = sortOrder;
+    final res = await _client.put(_uri('individuals'), headers: _headers, body: jsonEncode(body));
     await _decode(res);
   }
 
@@ -194,13 +174,15 @@ class ApiService {
     await _decode(res);
   }
 
-  static Future<void> addEntry({required int individualId, required String note, required double amount, required String type, required String date}) async {
-    final res = await _client.post(_uri('entries'), headers: _headers, body: jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date}));
+  static Future<void> addEntry({required int individualId, required String note, required double amount, required String type, required String date, int sortOrder = 0}) async {
+    final res = await _client.post(_uri('entries'), headers: _headers, body: jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date, 'sortOrder': sortOrder}));
     await _decode(res);
   }
 
-  static Future<void> updateEntry({required int id, required String note, required double amount, required String type, required String date}) async {
-    final res = await _client.put(_uri('entries'), headers: _headers, body: jsonEncode({'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date}));
+  static Future<void> updateEntry({required int id, required String note, required double amount, required String type, required String date, int? sortOrder}) async {
+    final body = <String, dynamic>{'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date};
+    if (sortOrder != null) body['sortOrder'] = sortOrder;
+    final res = await _client.put(_uri('entries'), headers: _headers, body: jsonEncode(body));
     await _decode(res);
   }
 
