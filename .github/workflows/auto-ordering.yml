@@ -1,0 +1,125 @@
+name: One-time automatic descending mobile ordering
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'Auto apply mobile descending ordering') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch mobile ordering
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def edit(path, fn):
+              p = Path(path)
+              s = p.read_text(encoding='utf-8')
+              s2 = fn(s)
+              p.write_text(s2, encoding='utf-8')
+
+          # Models
+          def models(s):
+              if 'final int sortOrder;' not in s:
+                  s = s.replace('  final String currency;\n  final List<ScheduleItem> schedule;', '  final String currency;\n  final int sortOrder;\n  final List<ScheduleItem> schedule;', 1)
+                  s = s.replace('required this.currency, required this.schedule', 'required this.currency, required this.sortOrder, required this.schedule', 1)
+                  s = s.replace("currency: j['currency'].toString(),\n        schedule:", "currency: j['currency'].toString(),\n        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,\n        schedule:", 1)
+              if 'final int sortOrder;' not in s[s.find('class Entry'):s.find('class Individual') if 'class Individual' in s else len(s)]:
+                  s = s.replace('  final String entryDate;\n\n  Entry({', '  final String entryDate;\n  final int sortOrder;\n\n  Entry({', 1)
+                  s = s.replace('required this.type, required this.entryDate});', 'required this.type, required this.entryDate, required this.sortOrder});', 1)
+                  s = s.replace("entryDate: j['entry_date'].toString(),", "entryDate: j['entry_date'].toString(),\n        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,", 1)
+              # Individual sort field
+              ind_part = s[s.find('class Individual'):]
+              if 'final int sortOrder;' not in ind_part:
+                  s = s.replace('  final String currency;\n  final List<Entry> entries;', '  final String currency;\n  final int sortOrder;\n  final List<Entry> entries;', 1)
+                  s = s.replace('required this.currency, required this.entries});', 'required this.currency, required this.sortOrder, required this.entries});', 1)
+                  s = s.replace("currency: j['currency'].toString(),\n        entries:", "currency: j['currency'].toString(),\n        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,\n        entries:", 1)
+              return s
+          edit('lib/models/models.dart', models)
+
+          # API service signatures/bodies
+          def api(s):
+              if 'int sortOrder = 0' not in s[s.find('static Future<void> addGam3eya'):s.find('static Future<void> setMyTurns')]:
+                  s = s.replace('    List<int> myTurnMonths = const [],\n  }) async {', '    List<int> myTurnMonths = const [],\n    int sortOrder = 0,\n  }) async {', 1)
+                  s = s.replace("        'myTurnMonths': myTurnMonths,\n      }),", "        'myTurnMonths': myTurnMonths,\n        'sortOrder': sortOrder,\n      }),", 1)
+              s = s.replace("static Future<void> renameGam3eya(int id, String name) async {\n    final res = await _client.put(_uri('gam3eyas'), headers: _headers, body: jsonEncode({'id': id, 'name': name}));", "static Future<void> renameGam3eya(int id, String name, {int? sortOrder}) async {\n    final body = <String, dynamic>{'id': id, 'name': name, if (sortOrder != null) 'sortOrder': sortOrder};\n    final res = await _client.put(_uri('gam3eyas'), headers: _headers, body: jsonEncode(body));", 1)
+              s = s.replace("static Future<void> addIndividual({required int sectionId, required String name, required String phone, required String currency}) async {", "static Future<void> addIndividual({required int sectionId, required String name, required String phone, required String currency, int sortOrder = 0}) async {", 1)
+              s = s.replace("jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency})", "jsonEncode({'sectionId': sectionId, 'name': name, 'phone': phone, 'currency': currency, 'sortOrder': sortOrder})", 1)
+              s = s.replace("static Future<void> updateIndividual({required int id, required String name, required String phone, required String currency}) async {", "static Future<void> updateIndividual({required int id, required String name, required String phone, required String currency, int? sortOrder}) async {", 1)
+              s = s.replace("final res = await _client.put(_uri('individuals'), headers: _headers, body: jsonEncode({'id': id, 'name': name, 'phone': phone, 'currency': currency}));", "final body = <String, dynamic>{'id': id, 'name': name, 'phone': phone, 'currency': currency, if (sortOrder != null) 'sortOrder': sortOrder};\n    final res = await _client.put(_uri('individuals'), headers: _headers, body: jsonEncode(body));", 1)
+              s = s.replace("static Future<void> addEntry({required int individualId, required String note, required double amount, required String type, required String date}) async {", "static Future<void> addEntry({required int individualId, required String note, required double amount, required String type, required String date, int sortOrder = 0}) async {", 1)
+              s = s.replace("jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date})", "jsonEncode({'individualId': individualId, 'note': note, 'amount': amount, 'type': type, 'date': date, 'sortOrder': sortOrder})", 1)
+              s = s.replace("static Future<void> updateEntry({required int id, required String note, required double amount, required String type, required String date}) async {", "static Future<void> updateEntry({required int id, required String note, required double amount, required String type, required String date, int? sortOrder}) async {", 1)
+              s = s.replace("final res = await _client.put(_uri('entries'), headers: _headers, body: jsonEncode({'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date}));", "final body = <String, dynamic>{'id': id, 'note': note, 'amount': amount, 'type': type, 'date': date, if (sortOrder != null) 'sortOrder': sortOrder};\n    final res = await _client.put(_uri('entries'), headers: _headers, body: jsonEncode(body));", 1)
+              return s
+          edit('lib/api_service.dart', api)
+
+          # Group UI
+          def groups(s):
+              s = s.replace('  List<Gam3eya> get _items => _all.where((g) => g.sectionId == widget.section.id).toList();', '  List<Gam3eya> get _items => (_all.where((g) => g.sectionId == widget.section.id).toList()..sort((a, b) => b.sortOrder.compareTo(a.sortOrder)));\n\n  int _nextSortOrder() {\n    final values = _items.map((g) => g.sortOrder);\n    return (values.isEmpty ? 0 : values.reduce((a,b) => a > b ? a : b)) + 1;\n  }', 1)
+              s = s.replace('    final amountCtrl = TextEditingController();\n    DateTime? startDate;', '    final amountCtrl = TextEditingController();\n    final sortCtrl = TextEditingController();\n    sortCtrl.text = _nextSortOrder().toString();\n    DateTime? startDate;', 1)
+              s = s.replace("TextField(controller: amountCtrl,", "TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),\n                  const SizedBox(height: 10),\n                  TextField(controller: amountCtrl,", 1)
+              s = s.replace('                            monthlyAmount: amount,\n                            intervalMonths:', '                            monthlyAmount: amount,\n                            sortOrder: int.tryParse(sortCtrl.text) ?? _nextSortOrder(),\n                            intervalMonths:', 1)
+              s = s.replace('    amountCtrl.dispose();\n  }', '    amountCtrl.dispose();\n    sortCtrl.dispose();\n  }', 1)
+              s = s.replace('    final ctrl = TextEditingController(text: g.name);', '    final ctrl = TextEditingController(text: g.name);\n    final sortCtrl = TextEditingController(text: g.sortOrder.toString());', 1)
+              s = s.replace('content: TextField(controller: ctrl, textAlign: TextAlign.right),', 'content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: ctrl, textAlign: TextAlign.right), const SizedBox(height: 10), TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: \'الترتيب في القائمة\'))]),', 1)
+              s = s.replace('    ctrl.dispose();\n    if (res != null && res.isNotEmpty) {\n      try {\n        await ApiService.renameGam3eya(g.id, res);', '    ctrl.dispose();\n    final sortOrder = int.tryParse(sortCtrl.text) ?? g.sortOrder;\n    sortCtrl.dispose();\n    if (res != null && res.isNotEmpty) {\n      try {\n        await ApiService.renameGam3eya(g.id, res, sortOrder: sortOrder);', 1)
+              return s
+          edit('lib/screens/gam3eyas_tab.dart', groups)
+
+          # Individuals UI
+          def individuals(s):
+              s = s.replace('  List<Individual> get _items => _all.where((p) => p.sectionId == widget.section.id).toList();', '  List<Individual> get _items => (_all.where((p) => p.sectionId == widget.section.id).toList()..sort((a,b) => b.sortOrder.compareTo(a.sortOrder)));\n\n  int _nextSortOrder() {\n    final values = _items.map((p) => p.sortOrder);\n    return (values.isEmpty ? 0 : values.reduce((a,b) => a > b ? a : b)) + 1;\n  }', 1)
+              s = s.replace('    final phoneCtrl = TextEditingController();\n    String currency = \'EGP\';', '    final phoneCtrl = TextEditingController();\n    final sortCtrl = TextEditingController();\n    sortCtrl.text = _nextSortOrder().toString();\n    String currency = \'EGP\';', 1)
+              s = s.replace('          const SizedBox(height: 10),\n          DropdownButtonFormField<String>(', '          const SizedBox(height: 10),\n          TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: \'الترتيب في القائمة (رقم - اختياري)\', border: OutlineInputBorder())),\n          const SizedBox(height: 10),\n          DropdownButtonFormField<String>(', 1)
+              s = s.replace('await ApiService.addIndividual(sectionId: widget.section.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency);', 'await ApiService.addIndividual(sectionId: widget.section.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency, sortOrder: int.tryParse(sortCtrl.text) ?? _nextSortOrder());', 1)
+              s = s.replace('    final phoneCtrl = TextEditingController(text: p.phone);\n    String currency = p.currency;', '    final phoneCtrl = TextEditingController(text: p.phone);\n    final sortCtrl = TextEditingController(text: p.sortOrder.toString());\n    String currency = p.currency;', 1)
+              s = s.replace('await ApiService.updateIndividual(id: p.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency);', 'await ApiService.updateIndividual(id: p.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency, sortOrder: int.tryParse(sortCtrl.text) ?? p.sortOrder);', 1)
+              # Insert edit sort field after currency dropdown block using first error marker following _edit.
+              pos = s.find('Future<void> _edit')
+              if pos >= 0:
+                  tail = s[pos:]
+                  marker = "          if (error != null)"
+                  if marker in tail and "controller: sortCtrl" not in tail[:tail.find('Future<void> _delete')]:
+                      tail = tail.replace(marker, "          const SizedBox(height: 10),\n          TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة', border: OutlineInputBorder())),\n" + marker, 1)
+                      s = s[:pos] + tail
+              # dispose sort controller at end of edit method
+              s = s.replace('    );\n  }\n\n  Future<void> _delete(Individual p)', '    );\n    sortCtrl.dispose();\n  }\n\n  Future<void> _delete(Individual p)', 1)
+              return s
+          edit('lib/screens/individuals_tab.dart', individuals)
+
+          # Individual entries
+          def detail(s):
+              s = s.replace("    final amountCtrl = TextEditingController(text: existing != null ? existing.amount.toString() : '');\n    String type", "    final amountCtrl = TextEditingController(text: existing != null ? existing.amount.toString() : '');\n    final sortCtrl = TextEditingController();\n    final nextOrder = (_p?.entries.map((e) => e.sortOrder).fold<int>(0, (m, v) => v > m ? v : m) ?? 0) + 1;\n    sortCtrl.text = existing != null ? existing.sortOrder.toString() : nextOrder.toString();\n    String type", 1)
+              s = s.replace('                if (error != null)', "                TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),\n                const SizedBox(height: 10),\n                if (error != null)", 1)
+              s = s.replace('await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);', 'await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? existing.sortOrder);', 1)
+              s = s.replace('await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);', 'await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder);', 1)
+              s = s.replace('    amountCtrl.dispose();', '    amountCtrl.dispose();\n    sortCtrl.dispose();', 1)
+              s = s.replace('    final balances = <int, double>{};\n    double running = 0;', '    final balances = <int, double>{};\n    final displayEntries = [...chronological]..sort((a,b) => b.sortOrder.compareTo(a.sortOrder));\n    double running = 0;', 1)
+              s = s.replace('...chronological.reversed.map((e)', '...displayEntries.map((e)', 1)
+              return s
+          edit('lib/screens/individual_detail_screen.dart', detail)
+
+      - name: Validate Dart formatting
+        run: |
+          dart --version
+          dart format lib/models/models.dart lib/api_service.dart lib/screens/gam3eyas_tab.dart lib/screens/individuals_tab.dart lib/screens/individual_detail_screen.dart
+
+      - name: Commit and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/models/models.dart lib/api_service.dart lib/screens/gam3eyas_tab.dart lib/screens/individuals_tab.dart lib/screens/individual_detail_screen.dart
+          git rm .github/workflows/auto-ordering.yml
+          git commit -m "Auto apply mobile descending ordering"
+          git push
