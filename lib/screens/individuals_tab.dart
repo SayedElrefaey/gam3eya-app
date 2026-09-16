@@ -46,6 +46,7 @@ class _IndividualsTabState extends State<IndividualsTab> {
   Future<void> _openAddForm() async {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final sortCtrl = TextEditingController(text: '0');
     String currency = 'EGP';
     String? error;
     await showModalBottomSheet(
@@ -53,46 +54,54 @@ class _IndividualsTabState extends State<IndividualsTab> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('إضافة ${widget.section.name} جديد', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
-          TextField(controller: nameCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'الاسم', border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          TextField(controller: phoneCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'رقم الهاتف (واتساب)', border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            value: currency,
-            decoration: const InputDecoration(labelText: 'العملة', border: OutlineInputBorder()),
-            items: const [DropdownMenuItem(value: 'EGP', child: Text('جنيه مصري (ج.م)')), DropdownMenuItem(value: 'USD', child: Text('دولار (\$)'))],
-            onChanged: (v) => setSt(() => currency = v ?? 'EGP'),
-          ),
-          if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
-          const SizedBox(height: 16),
-          Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))),
-            const SizedBox(width: 10),
-            Expanded(child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-              onPressed: () async {
-                if (nameCtrl.text.trim().isEmpty) { setSt(() => error = 'من فضلك أدخل اسم الفرد'); return; }
-                try {
-                  await ApiService.addIndividual(sectionId: widget.section.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _load();
-                } catch (e) { setSt(() => error = e.toString()); }
-              },
-              child: const Text('حفظ'),
-            )),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('إضافة ${widget.section.name} جديد', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            TextField(controller: nameCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'الاسم', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: phoneCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'رقم الهاتف (واتساب)', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: currency,
+              decoration: const InputDecoration(labelText: 'العملة', border: OutlineInputBorder()),
+              items: const [DropdownMenuItem(value: 'EGP', child: Text('جنيه مصري (ج.م)')), DropdownMenuItem(value: 'USD', child: Text('دولار (\$)'))],
+              onChanged: (v) => setSt(() => currency = v ?? 'EGP'),
+            ),
+            const SizedBox(height: 10),
+            TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),
+            if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty) { setSt(() => error = 'من فضلك أدخل اسم الفرد'); return; }
+                  try {
+                    await ApiService.addIndividual(sectionId: widget.section.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency, sortOrder: int.tryParse(sortCtrl.text) ?? 0);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    _load();
+                  } catch (e) { setSt(() => error = e.toString()); }
+                },
+                child: const Text('حفظ'),
+              )),
+            ]),
+            const SizedBox(height: 20),
           ]),
-          const SizedBox(height: 20),
-        ]),
+        ),
       )),
     );
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    sortCtrl.dispose();
   }
 
   Future<void> _edit(Individual p) async {
     final nameCtrl = TextEditingController(text: p.name);
     final phoneCtrl = TextEditingController(text: p.phone);
+    final sortCtrl = TextEditingController(text: p.sortOrder.toString());
     String currency = p.currency;
     String? error;
     await showModalBottomSheet(
@@ -100,37 +109,44 @@ class _IndividualsTabState extends State<IndividualsTab> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('تعديل بيانات الفرد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 14),
-          TextField(controller: nameCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'الاسم', border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          TextField(controller: phoneCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'رقم الهاتف', border: OutlineInputBorder())),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            value: currency,
-            decoration: const InputDecoration(labelText: 'العملة', border: OutlineInputBorder()),
-            items: const [DropdownMenuItem(value: 'EGP', child: Text('جنيه مصري (ج.م)')), DropdownMenuItem(value: 'USD', child: Text('دولار (\$)'))],
-            onChanged: (v) => setSt(() => currency = v ?? 'EGP'),
-          ),
-          if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) { setSt(() => error = 'الاسم مطلوب'); return; }
-              try {
-                await ApiService.updateIndividual(id: p.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency);
-                if (ctx.mounted) Navigator.pop(ctx);
-                _load();
-              } catch (e) { setSt(() => error = e.toString()); }
-            },
-            child: const Text('حفظ'),
-          ),
-          const SizedBox(height: 20),
-        ]),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('تعديل بيانات الفرد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            TextField(controller: nameCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'الاسم', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: phoneCtrl, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'رقم الهاتف', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: currency,
+              decoration: const InputDecoration(labelText: 'العملة', border: OutlineInputBorder()),
+              items: const [DropdownMenuItem(value: 'EGP', child: Text('جنيه مصري (ج.م)')), DropdownMenuItem(value: 'USD', child: Text('دولار (\$)'))],
+              onChanged: (v) => setSt(() => currency = v ?? 'EGP'),
+            ),
+            const SizedBox(height: 10),
+            TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة', border: OutlineInputBorder())),
+            if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
+              onPressed: () async {
+                if (nameCtrl.text.trim().isEmpty) { setSt(() => error = 'الاسم مطلوب'); return; }
+                try {
+                  await ApiService.updateIndividual(id: p.id, name: nameCtrl.text.trim(), phone: phoneCtrl.text.trim(), currency: currency, sortOrder: int.tryParse(sortCtrl.text) ?? 0);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _load();
+                } catch (e) { setSt(() => error = e.toString()); }
+              },
+              child: const Text('حفظ'),
+            ),
+            const SizedBox(height: 20),
+          ]),
+        ),
       )),
     );
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    sortCtrl.dispose();
   }
 
   Future<void> _delete(Individual p) async {
