@@ -41,11 +41,12 @@ class Gam3eya {
   final int intervalMonths;
   final double monthlyAmount;
   final String currency;
+  final int sortOrder;
   final List<ScheduleItem> schedule;
   final List<int> myTurns;
   final bool hasTurns;
 
-  Gam3eya({required this.id, required this.sectionId, required this.name, required this.startDate, required this.months, required this.intervalMonths, required this.monthlyAmount, required this.currency, required this.schedule, required this.myTurns, required this.hasTurns});
+  Gam3eya({required this.id, required this.sectionId, required this.name, required this.startDate, required this.months, required this.intervalMonths, required this.monthlyAmount, required this.currency, required this.sortOrder, required this.schedule, required this.myTurns, required this.hasTurns});
 
   double get total => schedule.fold(0.0, (a, s) => a + s.amount);
   int get paidCount => schedule.where((s) => s.paid).length;
@@ -60,6 +61,7 @@ class Gam3eya {
         intervalMonths: int.tryParse((j['interval_months'] ?? j['intervalMonths'] ?? 1).toString()) ?? 1,
         monthlyAmount: double.parse(j['monthly_amount'].toString()),
         currency: j['currency'].toString(),
+        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,
         schedule: (j['schedule'] as List).map((s) => ScheduleItem.fromJson(s)).toList(),
         myTurns: (j['my_turns'] as List? ?? const []).map((v) => int.parse(v.toString())).toList(),
         hasTurns: j['has_turns'].toString() == '1' || j['hasTurns'] == true,
@@ -72,8 +74,9 @@ class Entry {
   final double amount;
   final String type; // debit / credit
   final String entryDate;
+  final int sortOrder;
 
-  Entry({required this.id, required this.note, required this.amount, required this.type, required this.entryDate});
+  Entry({required this.id, required this.note, required this.amount, required this.type, required this.entryDate, required this.sortOrder});
 
   factory Entry.fromJson(Map<String, dynamic> j) => Entry(
         id: int.parse(j['id'].toString()),
@@ -81,6 +84,7 @@ class Entry {
         amount: double.parse(j['amount'].toString()),
         type: j['type'].toString(),
         entryDate: j['entry_date'].toString(),
+        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,
       );
 }
 
@@ -90,9 +94,10 @@ class Individual {
   final String name;
   final String phone;
   final String currency;
+  final int sortOrder;
   final List<Entry> entries;
 
-  Individual({required this.id, required this.sectionId, required this.name, required this.phone, required this.currency, required this.entries});
+  Individual({required this.id, required this.sectionId, required this.name, required this.phone, required this.currency, required this.sortOrder, required this.entries});
 
   double get total => entries.fold(0.0, (a, e) => a + (e.type == 'debit' ? e.amount : -e.amount));
 
@@ -102,6 +107,7 @@ class Individual {
         name: j['name'].toString(),
         phone: (j['phone'] ?? '').toString(),
         currency: j['currency'].toString(),
+        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,
         entries: (j['entries'] as List).map((e) => Entry.fromJson(e)).toList(),
       );
 }
