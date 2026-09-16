@@ -53,6 +53,11 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
     }
   }
 
+  int _nextSortOrder() {
+    final values = _items.map((g) => g.sortOrder).toList();
+    return (values.isEmpty ? 0 : values.reduce((a, b) => a > b ? a : b)) + 1;
+  }
+
   String _intervalLabel(int interval) {
     switch (interval) {
       case 3:
@@ -72,6 +77,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
     DateTime? startDate;
     String currency = 'EGP';
     int intervalMonths = 1;
+    sortCtrl.text = _nextSortOrder().toString();
     final selectedTurns = <int>{};
     String? error;
 
@@ -195,6 +201,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
   Future<void> _rename(Gam3eya g) async {
     final ctrl = TextEditingController(text: g.name);
     final sortCtrl = TextEditingController(text: g.sortOrder.toString());
+    final sortCtrl = TextEditingController(text: g.sortOrder.toString());
     final res = await showDialog<Map<String, String>>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -230,6 +237,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
 
   @override
   Widget build(BuildContext context) {
+    _all.sort((a, b) => b.sortOrder.compareTo(a.sortOrder));
     return Scaffold(
       backgroundColor: _paper,
       floatingActionButton: FloatingActionButton.extended(onPressed: _openAddForm, backgroundColor: cover, foregroundColor: gold, icon: const Icon(Icons.add), label: Text('إضافة ${widget.section.name}')),

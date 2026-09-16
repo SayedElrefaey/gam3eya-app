@@ -46,6 +46,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
   Future<void> _openEntryForm({Entry? existing}) async {
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
     final amountCtrl = TextEditingController(text: existing != null ? existing.amount.toString() : '');
+    final sortCtrl = TextEditingController();
+    final existingOrder = existing?.sortOrder ?? 0;
+    final nextOrder = _p == null || _p!.entries.isEmpty ? 1 : (_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1);
+    sortCtrl.text = existing != null ? existingOrder.toString() : nextOrder.toString();
     String type = existing?.type ?? 'debit';
     DateTime date = existing != null ? DateTime.parse(existing.entryDate) : DateTime.now();
     String? error;
@@ -86,6 +90,8 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                     if (d != null) setSt(() => date = d);
                   },
                 ),
+                TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),
+                const SizedBox(height: 10),
                 if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.right)),
                 const SizedBox(height: 16),
                 Row(children: [
@@ -99,9 +105,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
                       try {
                         if (existing != null) {
-                          await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);
+                          await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder);
                         } else {
-                          await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr);
+                          await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder);
                         }
                         if (ctx.mounted) Navigator.pop(ctx);
                         _load();
@@ -121,6 +127,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     );
     noteCtrl.dispose();
     amountCtrl.dispose();
+    sortCtrl.dispose();
   }
 
   Future<void> _deleteEntry(int id) async {
@@ -240,6 +247,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
       return cmp != 0 ? cmp : a.id.compareTo(b.id);
     });
     final balances = <int, double>{};
+    final displayEntries = [...chronological]..sort((a, b) => b.sortOrder.compareTo(a.sortOrder));
     double running = 0;
     double totalDebit = 0;
     double totalCredit = 0;
@@ -272,7 +280,7 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
               if (chronological.isEmpty)
                 Container(padding: const EdgeInsets.all(28), alignment: Alignment.center, decoration: BoxDecoration(color: Colors.white, border: Border.all(color: _line), borderRadius: BorderRadius.circular(8)), child: const Text('لا توجد حركات مسجلة'))
               else
-                ...chronological.reversed.map((e) {
+                ...displayEntries.map((e) {
                   final isDebit = e.type == 'debit';
                   final balance = balances[e.id] ?? 0;
                   final dt = DateTime.parse(e.entryDate);

@@ -23,7 +23,12 @@ class _IndividualsTabState extends State<IndividualsTab> {
   String? _error;
   bool _loading = true;
 
-  List<Individual> get _items => _all.where((p) => p.sectionId == widget.section.id).toList();
+  List<Individual> get _items => (_all.where((p) => p.sectionId == widget.section.id).toList()..sort((a, b) => b.sortOrder.compareTo(a.sortOrder)));
+
+  int _nextSortOrder() {
+    final values = _items.map((p) => p.sortOrder).toList();
+    return (values.isEmpty ? 0 : values.reduce((a, b) => a > b ? a : b)) + 1;
+  }
 
   @override
   void initState() { super.initState(); _load(); }
@@ -49,6 +54,7 @@ class _IndividualsTabState extends State<IndividualsTab> {
     final sortCtrl = TextEditingController(text: '0');
     String currency = 'EGP';
     String? error;
+    final sortCtrl = TextEditingController(text: p.sortOrder.toString());
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -70,7 +76,9 @@ class _IndividualsTabState extends State<IndividualsTab> {
             ),
             const SizedBox(height: 10),
             TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),
-            if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+            const SizedBox(height: 10),
+          TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة', border: OutlineInputBorder())),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
             const SizedBox(height: 16),
             Row(children: [
               Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))),
