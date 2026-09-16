@@ -24,7 +24,12 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
   String? _error;
   bool _loading = true;
 
-  List<Gam3eya> get _items => _all.where((g) => g.sectionId == widget.section.id).toList();
+  List<Gam3eya> get _items => (_all.where((g) => g.sectionId == widget.section.id).toList()..sort((a, b) => b.sortOrder.compareTo(a.sortOrder)));
+
+  int _nextSortOrder() {
+    final values = _items.map((g) => g.sortOrder);
+    return (values.isEmpty ? 0 : values.reduce((a,b) => a > b ? a : b)) + 1;
+  }
 
   @override
   void initState() {
@@ -105,7 +110,9 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
                   onChanged: (v) => setSt(() => intervalMonths = v ?? 1),
                 ),
                 const SizedBox(height: 10),
-                TextField(controller: amountCtrl, textAlign: TextAlign.right, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'مبلغ القسط', border: OutlineInputBorder())),
+                TextField(controller: sortCtrl, textAlign: TextAlign.right, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الترتيب في القائمة (رقم - اختياري)', border: OutlineInputBorder())),
+                  const SizedBox(height: 10),
+                  TextField(controller: amountCtrl, textAlign: TextAlign.right, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'مبلغ القسط', border: OutlineInputBorder())),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: currency,
@@ -200,6 +207,7 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
 
   Future<void> _rename(Gam3eya g) async {
     final ctrl = TextEditingController(text: g.name);
+    final sortCtrl = TextEditingController(text: g.sortOrder.toString());
     final sortCtrl = TextEditingController(text: g.sortOrder.toString());
     final sortCtrl = TextEditingController(text: g.sortOrder.toString());
     final res = await showDialog<Map<String, String>>(
