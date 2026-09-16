@@ -85,7 +85,6 @@ class Entry {
         type: j['type'].toString(),
         entryDate: j['entry_date'].toString(),
         sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,
-        sortOrder: int.tryParse((j['sort_order'] ?? j['sortOrder'] ?? 0).toString()) ?? 0,
       );
 }
 
