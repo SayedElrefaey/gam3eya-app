@@ -71,14 +71,31 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                 const SizedBox(height: 10),
                 TextField(controller: amountCtrl, textAlign: TextAlign.right, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'المبلغ', border: OutlineInputBorder())),
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: type,
-                  decoration: const InputDecoration(labelText: 'نوع الحركة', border: OutlineInputBorder()),
-                  items: const [
-                    DropdownMenuItem(value: 'debit', child: Text('مستحق (إضافة)')),
-                    DropdownMenuItem(value: 'credit', child: Text('تم تحصيله (خصم)')),
+                const Text('نوع الحركة', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, color: cover)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        value: 'credit',
+                        groupValue: type,
+                        activeColor: const Color(0xFF2F6B4F),
+                        title: const Text('له', textAlign: TextAlign.right),
+                        onChanged: (v) => setSt(() => type = v ?? 'credit'),
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        value: 'debit',
+                        groupValue: type,
+                        activeColor: const Color(0xFFA3402F),
+                        title: const Text('عليه', textAlign: TextAlign.right),
+                        onChanged: (v) => setSt(() => type = v ?? 'debit'),
+                      ),
+                    ),
                   ],
-                  onChanged: (v) => setSt(() => type = v ?? 'debit'),
                 ),
                 const SizedBox(height: 10),
                 ListTile(
@@ -96,30 +113,102 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                 const SizedBox(height: 10),
                 if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.right)),
                 const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء'))),
-                  const SizedBox(width: 10),
-                  Expanded(child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-                    onPressed: () async {
-                      final amount = double.tryParse(amountCtrl.text) ?? 0;
-                      if (amount <= 0) { setSt(() => error = 'من فضلك أدخل مبلغ صحيح'); return; }
-                      final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                      try {
-                        if (existing != null) {
-                          await ApiService.updateEntry(id: existing.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder);
-                        } else {
-                          await ApiService.addEntry(individualId: widget.id, note: noteCtrl.text.trim(), amount: amount, type: type, date: dateStr, sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder);
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        _load();
-                      } catch (e) {
-                        setSt(() => error = e.toString());
-                      }
-                    },
-                    child: Text(existing != null ? 'حفظ التعديل' : 'حفظ الحركة'),
-                  )),
-                ]),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('إلغاء'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (existing == null)
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: gold,
+                            foregroundColor: cover,
+                          ),
+                          onPressed: () async {
+                            final amount = double.tryParse(amountCtrl.text) ?? 0;
+                            if (amount <= 0) {
+                              setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                              return;
+                            }
+                            final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                            try {
+                              await ApiService.addEntry(
+                                individualId: widget.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                              );
+                              noteCtrl.clear();
+                              amountCtrl.clear();
+                              sortCtrl.text = (_p == null || _p!.entries.isEmpty)
+                                  ? '1'
+                                  : ((_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1)).toString();
+                              setSt(() => error = null);
+                              await _load();
+                            } catch (e) {
+                              setSt(() => error = e.toString());
+                            }
+                          },
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('حفظ و إضافة عملية جديدة'),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: cover,
+                          foregroundColor: gold,
+                        ),
+                        onPressed: () async {
+                          final amount = double.tryParse(amountCtrl.text) ?? 0;
+                          if (amount <= 0) {
+                            setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                            return;
+                          }
+                          final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                          try {
+                            if (existing != null) {
+                              await ApiService.updateEntry(
+                                id: existing.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder,
+                              );
+                            } else {
+                              await ApiService.addEntry(
+                                individualId: widget.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                              );
+                            }
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            await _load();
+                          } catch (e) {
+                            setSt(() => error = e.toString());
+                          }
+                        },
+                        child: Text(existing != null ? 'حفظ التعديل' : 'حفظ و خروج'),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
               ],
             ),
@@ -129,7 +218,6 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     );
     noteCtrl.dispose();
     amountCtrl.dispose();
-    sortCtrl.dispose();
     sortCtrl.dispose();
   }
 
