@@ -130,8 +130,165 @@ class _IndividualsTabState extends State<IndividualsTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _paper,
-      floatingActionButton: FloatingActionButton.extended(onPressed: _openAddForm, backgroundColor: cover, foregroundColor: gold, icon: const Icon(Icons.add), label: Text('إضافة ${widget.section.name}')),
-      body: RefreshIndicator(onRefresh: _load, child: _error != null ? ListView(children: [Padding(padding: const EdgeInsets.all(30), child: Text(_error!, textAlign: TextAlign.center))]) : _loading ? const Center(child: CircularProgressIndicator()) : _items.isEmpty ? ListView(children: [Padding(padding: const EdgeInsets.all(40), child: Text('لا يوجد ${widget.section.name} بعد\nأضف عنصر وسجل حسابه', textAlign: TextAlign.center))]) : ListView.builder(padding: const EdgeInsets.fromLTRB(12, 24, 12, 90), itemCount: _items.length, itemBuilder: (ctx, i) { final p = _items[i]; final sym = currencySymbols[p.currency] ?? p.currency; final balance = p.total; final hasReceivable = balance < 0; final statusColor = hasReceivable ? _success : _danger; final statusBg = hasReceivable ? const Color(0xFFE9F6EC) : const Color(0xFFF9E9E7); return Container(margin: const EdgeInsets.only(bottom: 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: _line), boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 10, offset: Offset(0, 4))]), child: InkWell(borderRadius: BorderRadius.circular(14), onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => IndividualDetailScreen(id: p.id))); _load(); }, onLongPress: () => _showActions(p), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), child: Directionality(textDirection: TextDirection.rtl, child: Row(children: [Container(width: 48, height: 48, decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(14)), child: Icon(Icons.arrow_upward_rounded, color: statusColor, size: 32)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black)), const SizedBox(height: 5), Text('${fmtNum(balance.abs())} $sym', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: statusColor))])), const SizedBox(width: 8), Column(children: [Container(width: 38, height: 44, decoration: BoxDecoration(color: gold, borderRadius: BorderRadius.circular(8)), alignment: Alignment.center, child: Text('${p.entries.length}', style: TextStyle(color: cover, fontSize: 17, fontWeight: FontWeight.w900))), const SizedBox(height: 4), Text('حركات', style: TextStyle(fontSize: 10, color: cover, fontWeight: FontWeight.bold))]))))))
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAddForm,
+        backgroundColor: cover,
+        foregroundColor: gold,
+        icon: const Icon(Icons.add),
+        label: Text('إضافة ${widget.section.name}'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: _error != null
+            ? ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Text(_error!, textAlign: TextAlign.center),
+                  ),
+                ],
+              )
+            : _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _items.isEmpty
+                    ? ListView(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(40),
+                            child: Text(
+                              'لا يوجد ${widget.section.name} بعد\nأضف عنصر وسجل حسابه',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 24, 12, 90),
+                        itemCount: _items.length,
+                        itemBuilder: (ctx, i) {
+                          final p = _items[i];
+                          final sym = currencySymbols[p.currency] ?? p.currency;
+                          final balance = p.total;
+                          final hasReceivable = balance < 0;
+                          final statusColor = hasReceivable ? _success : _danger;
+                          final statusBg = hasReceivable
+                              ? const Color(0xFFE9F6EC)
+                              : const Color(0xFFF9E9E7);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: _line),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => IndividualDetailScreen(id: p.id),
+                                  ),
+                                );
+                                _load();
+                              },
+                              onLongPress: () => _showActions(p),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                child: Directionality(
+                                  textDirection: TextDirection.rtl,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: statusBg,
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        child: Icon(
+                                          Icons.arrow_upward_rounded,
+                                          color: statusColor,
+                                          size: 32,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              '${fmtNum(balance.abs())} $sym',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: statusColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        children: [
+                                          Container(
+                                            width: 38,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: gold,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '${p.entries.length}',
+                                              style: TextStyle(
+                                                color: cover,
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'حركات',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: cover,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+      ),
     );
-  }
-}
+  }}
