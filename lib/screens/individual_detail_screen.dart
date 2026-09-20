@@ -11,6 +11,7 @@ const _success = Color(0xFF2F6B4F);
 const _successLight = Color(0xFFDCF0E3);
 const _goldLight = Color(0xFFE6B95C);
 const _goldPale = Color(0xFFF8E8B8);
+const _amountPale = Color(0xFFEAF3F5);
 const _danger = Color(0xFFA3402F);
 
 class IndividualDetailScreen extends StatefulWidget {
@@ -387,8 +388,8 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                           _ledgerCell(_formatDate(dt), flex: 16, background: Colors.white, textColor: cover, fontSize: 15.5),
                           _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 13, background: Colors.white, textColor: Colors.black, fontSize: 17),
-                          _ledgerCell(fmtNum(e.amount), flex: 10, background: amountBackground, textColor: amountColor, fontSize: 18, bold: true),
-                          _ledgerCell(fmtNum(balance), flex: 10, background: balanceBackground, textColor: balanceColor, fontSize: 18, bold: true),
+                          _ledgerCell(fmtNum(e.amount), flex: 8, background: amountBackground, textColor: amountColor, fontSize: 18, bold: true),
+                          _ledgerCell(fmtNum(balance), flex: 8, background: balanceBackground, textColor: balanceColor, fontSize: 18, bold: true),
                         ]),
                       ),
                     ),
@@ -418,10 +419,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
   ])));
 
   Widget _ledgerHeaderRow() => Row(children: [
-    _ledgerHeaderCell('التاريخ', 16),
-    _ledgerHeaderCell('التفاصيل', 13),
-    _ledgerHeaderCell('المبلغ', 10),
-    _ledgerHeaderCell('الرصيد', 10),
+    _ledgerHeaderCell('التاريخ', 14),
+    _ledgerHeaderCell('التفاصيل', 20),
+    _ledgerHeaderCell('المبلغ', 8),
+    _ledgerHeaderCell('الرصيد', 8),
   ]);
 
   Widget _ledgerHeaderCell(String text, int flex) => Expanded(
