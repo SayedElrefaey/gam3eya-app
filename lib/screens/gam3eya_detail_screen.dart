@@ -189,7 +189,7 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
     final g = _g!;
     final sym = currencySymbols[g.currency] ?? g.currency;
     final remaining = g.total - g.paidTotal;
-    final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}';
+    final turnsText = 'دورك: ${g.myTurns.join(', ')}';
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -223,7 +223,7 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
               const SizedBox(height: 8),
               Row(children: [
                 _statCard('المتبقي', '${fmtNum(remaining)} $sym'),
-                if (_turnEnabled) _turnCard(turnsText),
+                if (_turnEnabled && g.myTurns.isNotEmpty) _turnCard(turnsText),
               ]),
               const SizedBox(height: 10),
               if (_turnEnabled) ...[
@@ -253,8 +253,13 @@ class _Gam3eyaDetailScreenState extends State<Gam3eyaDetailScreen> {
                   ...g.schedule.map((s) {
                     final isTurn = _turnEnabled && g.myTurns.contains(s.monthIdx);
                     return Container(
-                      color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isTurn ? _turnLight : (s.paid ? _successLight : Colors.white),
+                        border: Border(bottom: BorderSide(color: _line, width: 0.8)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 5),
                       child: Row(children: [
                         Expanded(flex: 8, child: Text('${s.monthIdx}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, color: cover, fontSize: 15))),
                         Expanded(flex: 20, child: Text(_fmtDate(s.dueDate), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, color: cover, fontSize: 15))),
