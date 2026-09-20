@@ -185,8 +185,221 @@ class _Gam3eyasTabState extends State<Gam3eyasTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _paper,
-      floatingActionButton: FloatingActionButton.extended(onPressed: _openAddForm, backgroundColor: cover, foregroundColor: gold, icon: const Icon(Icons.add), label: Text('إضافة ${widget.section.name}')),
-      body: RefreshIndicator(onRefresh: _load, color: cover, child: _error != null ? ListView(children: [Padding(padding: const EdgeInsets.all(30), child: Text(_error!, textAlign: TextAlign.center))]) : _loading ? const Center(child: CircularProgressIndicator(color: cover)) : _items.isEmpty ? ListView(children: [const SizedBox(height: 60), Padding(padding: const EdgeInsets.all(30), child: Text('لا توجد جمعيات بعد\nابدأ بإضافة أول جمعية', textAlign: TextAlign.center, style: const TextStyle(color: cover, fontSize: 16, fontWeight: FontWeight.w600)))] ) : ListView.builder(padding: const EdgeInsets.fromLTRB(10, 12, 10, 90), itemCount: _items.length, itemBuilder: (ctx, i) { final g = _items[i]; final total = g.total; final paid = g.paidTotal; final remaining = total - paid; final turnsText = g.myTurns.isEmpty ? 'الدور غير محدد' : 'دورك: ${g.myTurns.join(', ')}'; return Card(margin: const EdgeInsets.only(bottom: 10), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _line)), child: InkWell(borderRadius: BorderRadius.circular(12), onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => Gam3eyaDetailScreen(id: g.id))); _load(); }, child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Row(children: [Expanded(child: Text(g.name, textAlign: TextAlign.right, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: cover))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _paper2, borderRadius: BorderRadius.circular(20), border: Border.all(color: _line)), child: Text(currencySymbols[g.currency] ?? g.currency, style: const TextStyle(fontWeight: FontWeight.bold, color: cover)))]), const SizedBox(height: 7), Text('${g.months} قسط  •  ${_intervalLabel(g.intervalMonths)}  •  مدفوع ${g.paidCount}/${g.months}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, color: Color(0xFF6B6248))), const SizedBox(height: 10), Row(children: [Expanded(child: _infoBox('مبلغ القسط', '${fmtNum(g.monthlyAmount)} ${currencySymbols[g.currency] ?? g.currency}')), const SizedBox(width: 8), Expanded(child: _infoBox('المتبقي', '${fmtNum(remaining)} ${currencySymbols[g.currency] ?? g.currency}'))]), if (widget.section.hasTurns) ...[const SizedBox(height: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: _turnLight, borderRadius: BorderRadius.circular(8), border: Border.all(color: _turnBlue)), child: Row(children: [const Icon(Icons.star, size: 18, color: _turnBlue), const SizedBox(width: 6), Expanded(child: Text(turnsText, textAlign: TextAlign.right, style: const TextStyle(color: Color(0xFF1E2E6B), fontWeight: FontWeight.bold, fontSize: 12)))]),)], const SizedBox(height: 10), Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _rename(g), icon: const Icon(Icons.edit, size: 18), label: const Text('تعديل'))), const SizedBox(width: 8), Expanded(child: OutlinedButton.icon(onPressed: () => _delete(g), icon: const Icon(Icons.delete, size: 18, color: Colors.red), label: const Text('حذف', style: TextStyle(color: Colors.red))))])])))); })
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAddForm,
+        backgroundColor: cover,
+        foregroundColor: gold,
+        icon: const Icon(Icons.add),
+        label: Text('إضافة ${widget.section.name}'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: cover,
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_error != null) {
+      return ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(30),
+            child: Text(
+              _error!,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: cover),
+      );
+    }
+
+    if (_items.isEmpty) {
+      return ListView(
+        children: [
+          const SizedBox(height: 60),
+          const Padding(
+            padding: EdgeInsets.all(30),
+            child: Text(
+              'لا توجد جمعيات بعد\nابدأ بإضافة أول جمعية',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: cover,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 90),
+      itemCount: _items.length,
+      itemBuilder: (ctx, i) {
+        final g = _items[i];
+        final total = g.total;
+        final paid = g.paidTotal;
+        final remaining = total - paid;
+        final turnsText = g.myTurns.isEmpty
+            ? 'الدور غير محدد'
+            : 'دورك: ${g.myTurns.join(', ')}';
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: _line),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => Gam3eyaDetailScreen(id: g.id),
+                ),
+              );
+              _load();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          g.name,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: cover,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _paper2,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _line),
+                        ),
+                        child: Text(
+                          currencySymbols[g.currency] ?? g.currency,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: cover,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    '${g.months} قسط  •  ${_intervalLabel(g.intervalMonths)}  •  مدفوع ${g.paidCount}/${g.months}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B6248),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _infoBox(
+                          'مبلغ القسط',
+                          '${fmtNum(g.monthlyAmount)} ${currencySymbols[g.currency] ?? g.currency}',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _infoBox(
+                          'المتبقي',
+                          '${fmtNum(remaining)} ${currencySymbols[g.currency] ?? g.currency}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (widget.section.hasTurns && g.myTurns.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _turnLight,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _turnBlue),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star, size: 18, color: _turnBlue),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              turnsText,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                color: Color(0xFF1E2E6B),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _rename(g),
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('تعديل'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _delete(g),
+                          icon: const Icon(
+                            Icons.delete,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          label: const Text(
+                            'حذف',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
