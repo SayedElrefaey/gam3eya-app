@@ -55,12 +55,27 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     DateTime date = existing != null ? DateTime.parse(existing.entryDate) : DateTime.now();
     String? error;
 
-    await showModalBottomSheet(
+    await showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
+      barrierDismissible: true,
+      builder: (ctx) {
+        final size = MediaQuery.of(ctx).size;
+        final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          clipBehavior: Clip.antiAlias,
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            padding: EdgeInsets.only(bottom: keyboard > 0 ? keyboard : 0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: size.width * 0.90,
+                maxHeight: size.height * 0.82,
+              ),
+              child: StatefulBuilder(
         builder: (ctx, setSt) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, top: 20, left: 20, right: 20),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -274,8 +289,8 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
+    });
     noteCtrl.dispose();
     amountCtrl.dispose();
     sortCtrl.dispose();
