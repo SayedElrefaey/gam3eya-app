@@ -58,240 +58,232 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     await showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) {
-        final size = MediaQuery.of(ctx).size;
-        final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
-        return Dialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          clipBehavior: Clip.antiAlias,
-          child: AnimatedPadding(
-            duration: const Duration(milliseconds: 180),
-            padding: EdgeInsets.only(bottom: keyboard > 0 ? keyboard : 0),
+          titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+          contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+          title: Text(
+            existing != null ? 'تعديل الحركة' : 'إضافة حركة على الحساب',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black),
+          ),
+          content: SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: size.width * 0.90,
-                maxHeight: size.height * 0.82,
-              ),
-              child: StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(existing != null ? 'تعديل الحركة' : 'إضافة حركة على الحساب', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black), textAlign: TextAlign.right),
-                const SizedBox(height: 18),
-                SizedBox(
-                  height: 138,
-                  child: TextField(
-                    controller: noteCtrl,
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 22),
-                    maxLines: 5,
-                    decoration: InputDecoration(
-                      labelText: 'الوصف',
-                      labelStyle: const TextStyle(fontSize: 19, color: Colors.black87),
-                      floatingLabelStyle: const TextStyle(fontSize: 18, color: cover, fontWeight: FontWeight.w600),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 138,
-                  child: TextField(
-                    controller: amountCtrl,
-                    textAlign: TextAlign.right,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 22),
-                    decoration: InputDecoration(
-                      labelText: 'المبلغ',
-                      labelStyle: const TextStyle(fontSize: 19, color: Colors.black87),
-                      floatingLabelStyle: const TextStyle(fontSize: 18, color: cover, fontWeight: FontWeight.w600),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54, width: 1.5)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54, width: 1.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text('نوع الحركة', textAlign: TextAlign.right, style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold, color: cover)),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        dense: false,
-                        value: 'credit',
-                        groupValue: type,
-                        activeColor: const Color(0xFF2F6B4F),
-                        title: const Text('له', textAlign: TextAlign.right, style: TextStyle(fontSize: 22)),
-                        onChanged: (v) => setSt(() => type = v ?? 'credit'),
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 90,
+                    child: TextField(
+                      controller: noteCtrl,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 18),
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'الوصف',
+                        labelStyle: const TextStyle(fontSize: 16),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
                       ),
                     ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        dense: false,
-                        value: 'debit',
-                        groupValue: type,
-                        activeColor: const Color(0xFFA3402F),
-                        title: const Text('عليه', textAlign: TextAlign.right, style: TextStyle(fontSize: 22)),
-                        onChanged: (v) => setSt(() => type = v ?? 'debit'),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 62,
+                    child: TextField(
+                      controller: amountCtrl,
+                      textAlign: TextAlign.right,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(fontSize: 18),
+                      decoration: InputDecoration(
+                        labelText: 'المبلغ',
+                        labelStyle: const TextStyle(fontSize: 16),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  minVerticalPadding: 12,
-                  title: Text('${date.day}/${date.month}/${date.year}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 22)),
-                  trailing: const Icon(Icons.calendar_today, size: 34, color: Colors.black54),
-                  onTap: () async {
-                    final d = await showDatePicker(context: ctx, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
-                    if (d != null) setSt(() => date = d);
-                  },
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 138,
-                  child: TextField(
-                    controller: sortCtrl,
-                    textAlign: TextAlign.right,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(fontSize: 22),
-                    decoration: InputDecoration(
-                      labelText: 'الترتيب في القائمة (رقم - اختياري)',
-                      labelStyle: const TextStyle(fontSize: 18, color: Colors.black87),
-                      floatingLabelStyle: const TextStyle(fontSize: 18, color: Colors.black54),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54, width: 1.5)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54, width: 1.5)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.right)),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('إلغاء'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (existing == null)
+                  const SizedBox(height: 10),
+                  const Text('نوع الحركة', textAlign: TextAlign.right, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cover)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
                       Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: gold,
-                            foregroundColor: cover,
-                          ),
-                          onPressed: () async {
-                            final amount = double.tryParse(amountCtrl.text) ?? 0;
-                            if (amount <= 0) {
-                              setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
-                              return;
-                            }
-                            final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                            try {
-                              await ApiService.addEntry(
-                                individualId: widget.id,
-                                note: noteCtrl.text.trim(),
-                                amount: amount,
-                                type: type,
-                                date: dateStr,
-                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
-                              );
-                              noteCtrl.clear();
-                              amountCtrl.clear();
-                              sortCtrl.text = (_p == null || _p!.entries.isEmpty)
-                                  ? '1'
-                                  : ((_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1)).toString();
-                              setSt(() => error = null);
-                              await _load();
-                            } catch (e) {
-                              setSt(() => error = e.toString());
-                            }
-                          },
-                          child: const FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text('حفظ و إضافة عملية جديدة'),
-                          ),
+                        child: RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: 'credit',
+                          groupValue: type,
+                          activeColor: const Color(0xFF2F6B4F),
+                          title: const Text('له', textAlign: TextAlign.right, style: TextStyle(fontSize: 17)),
+                          onChanged: (v) => setSt(() => type = v ?? 'credit'),
                         ),
                       ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: cover,
-                          foregroundColor: gold,
+                      Expanded(
+                        child: RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          value: 'debit',
+                          groupValue: type,
+                          activeColor: const Color(0xFFA3402F),
+                          title: const Text('عليه', textAlign: TextAlign.right, style: TextStyle(fontSize: 17)),
+                          onChanged: (v) => setSt(() => type = v ?? 'debit'),
                         ),
-                        onPressed: () async {
-                          final amount = double.tryParse(amountCtrl.text) ?? 0;
-                          if (amount <= 0) {
-                            setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
-                            return;
-                          }
-                          final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                          try {
-                            if (existing != null) {
-                              await ApiService.updateEntry(
-                                id: existing.id,
-                                note: noteCtrl.text.trim(),
-                                amount: amount,
-                                type: type,
-                                date: dateStr,
-                                sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder,
-                              );
-                            } else {
-                              await ApiService.addEntry(
-                                individualId: widget.id,
-                                note: noteCtrl.text.trim(),
-                                amount: amount,
-                                type: type,
-                                date: dateStr,
-                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
-                              );
-                            }
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            await _load();
-                          } catch (e) {
-                            setSt(() => error = e.toString());
-                          }
-                        },
-                        child: Text(existing != null ? 'حفظ التعديل' : 'حفظ و خروج'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: Text('${date.day}/${date.month}/${date.year}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 17)),
+                    trailing: const Icon(Icons.calendar_today, size: 26, color: Colors.black54),
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: ctx,
+                        initialDate: date,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (d != null) setSt(() => date = d);
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 62,
+                    child: TextField(
+                      controller: sortCtrl,
+                      textAlign: TextAlign.right,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 18),
+                      decoration: InputDecoration(
+                        labelText: 'الترتيب في القائمة (رقم - اختياري)',
+                        labelStyle: const TextStyle(fontSize: 15),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black54)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: cover, width: 2)),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-              ],
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.right),
+                    ),
+                ],
+              ),
             ),
           ),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('إلغاء', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (existing == null)
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: gold, foregroundColor: cover),
+                      onPressed: () async {
+                        final amount = double.tryParse(amountCtrl.text) ?? 0;
+                        if (amount <= 0) {
+                          setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                          return;
+                        }
+                        final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                        try {
+                          await ApiService.addEntry(
+                            individualId: widget.id,
+                            note: noteCtrl.text.trim(),
+                            amount: amount,
+                            type: type,
+                            date: dateStr,
+                            sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                          );
+                          noteCtrl.clear();
+                          amountCtrl.clear();
+                          sortCtrl.text = (_p == null || _p!.entries.isEmpty)
+                              ? '1'
+                              : ((_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1)).toString();
+                          setSt(() => error = null);
+                          await _load();
+                        } catch (e) {
+                          setSt(() => error = e.toString());
+                        }
+                      },
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('حفظ و إضافة عملية جديدة'),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
+                    onPressed: () async {
+                      final amount = double.tryParse(amountCtrl.text) ?? 0;
+                      if (amount <= 0) {
+                        setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                        return;
+                      }
+                      final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                      try {
+                        if (existing != null) {
+                          await ApiService.updateEntry(
+                            id: existing.id,
+                            note: noteCtrl.text.trim(),
+                            amount: amount,
+                            type: type,
+                            date: dateStr,
+                            sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder,
+                          );
+                        } else {
+                          await ApiService.addEntry(
+                            individualId: widget.id,
+                            note: noteCtrl.text.trim(),
+                            amount: amount,
+                            type: type,
+                            date: dateStr,
+                            sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                          );
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _load();
+                      } catch (e) {
+                        setSt(() => error = e.toString());
+                      }
+                    },
+                    child: Text(existing != null ? 'حفظ التعديل' : 'حفظ و خروج', style: const TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    );
-      },
     );
     noteCtrl.dispose();
     amountCtrl.dispose();
