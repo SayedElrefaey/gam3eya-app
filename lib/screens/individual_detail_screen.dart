@@ -289,8 +289,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
             ),
           ),
         ),
-      );
-    });
+      ),
+    );
+      },
+    );
     noteCtrl.dispose();
     amountCtrl.dispose();
     sortCtrl.dispose();
