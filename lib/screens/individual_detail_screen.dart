@@ -78,12 +78,12 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: 90,
+                    height: 62,
                     child: TextField(
                       controller: noteCtrl,
                       textAlign: TextAlign.right,
                       style: const TextStyle(fontSize: 18),
-                      maxLines: 3,
+                      maxLines: 1,
                       decoration: InputDecoration(
                         labelText: 'الوصف',
                         labelStyle: const TextStyle(fontSize: 16),
@@ -191,95 +191,112 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
             ),
           ),
           actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('إلغاء', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (existing == null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+              child: Row(
+                children: [
+                  if (existing == null)
+                    Expanded(
+                      child: SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: gold,
+                            foregroundColor: cover,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                          ),
+                          onPressed: () async {
+                            final amount = double.tryParse(amountCtrl.text) ?? 0;
+                            if (amount <= 0) {
+                              setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                              return;
+                            }
+                            final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                            try {
+                              await ApiService.addEntry(
+                                individualId: widget.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                              );
+                              noteCtrl.clear();
+                              amountCtrl.clear();
+                              sortCtrl.text = (_p == null || _p!.entries.isEmpty)
+                                  ? '1'
+                                  : ((_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1)).toString();
+                              setSt(() => error = null);
+                              await _load();
+                            } catch (e) {
+                              setSt(() => error = e.toString());
+                            }
+                          },
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('حفظ و إضافة عملية جديدة', style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (existing == null) const SizedBox(width: 10),
                   Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: gold, foregroundColor: cover),
-                      onPressed: () async {
-                        final amount = double.tryParse(amountCtrl.text) ?? 0;
-                        if (amount <= 0) {
-                          setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
-                          return;
-                        }
-                        final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                        try {
-                          await ApiService.addEntry(
-                            individualId: widget.id,
-                            note: noteCtrl.text.trim(),
-                            amount: amount,
-                            type: type,
-                            date: dateStr,
-                            sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
-                          );
-                          noteCtrl.clear();
-                          amountCtrl.clear();
-                          sortCtrl.text = (_p == null || _p!.entries.isEmpty)
-                              ? '1'
-                              : ((_p!.entries.map((e) => e.sortOrder).reduce((a, b) => a > b ? a : b) + 1)).toString();
-                          setSt(() => error = null);
-                          await _load();
-                        } catch (e) {
-                          setSt(() => error = e.toString());
-                        }
-                      },
-                      child: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text('حفظ و إضافة عملية جديدة'),
+                    flex: existing == null ? 1 : 2,
+                    child: SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: cover,
+                          foregroundColor: gold,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        onPressed: () async {
+                          final amount = double.tryParse(amountCtrl.text) ?? 0;
+                          if (amount <= 0) {
+                            setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
+                            return;
+                          }
+                          final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                          try {
+                            if (existing != null) {
+                              await ApiService.updateEntry(
+                                id: existing.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder,
+                              );
+                            } else {
+                              await ApiService.addEntry(
+                                individualId: widget.id,
+                                note: noteCtrl.text.trim(),
+                                amount: amount,
+                                type: type,
+                                date: dateStr,
+                                sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
+                              );
+                            }
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            await _load();
+                          } catch (e) {
+                            setSt(() => error = e.toString());
+                          }
+                        },
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            existing != null ? 'حفظ التعديل' : 'حفظ و خروج',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: cover, foregroundColor: gold),
-                    onPressed: () async {
-                      final amount = double.tryParse(amountCtrl.text) ?? 0;
-                      if (amount <= 0) {
-                        setSt(() => error = 'من فضلك أدخل مبلغ صحيح');
-                        return;
-                      }
-                      final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                      try {
-                        if (existing != null) {
-                          await ApiService.updateEntry(
-                            id: existing.id,
-                            note: noteCtrl.text.trim(),
-                            amount: amount,
-                            type: type,
-                            date: dateStr,
-                            sortOrder: int.tryParse(sortCtrl.text) ?? existingOrder,
-                          );
-                        } else {
-                          await ApiService.addEntry(
-                            individualId: widget.id,
-                            note: noteCtrl.text.trim(),
-                            amount: amount,
-                            type: type,
-                            date: dateStr,
-                            sortOrder: int.tryParse(sortCtrl.text) ?? nextOrder,
-                          );
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        await _load();
-                      } catch (e) {
-                        setSt(() => error = e.toString());
-                      }
-                    },
-                    child: Text(existing != null ? 'حفظ التعديل' : 'حفظ و خروج', style: const TextStyle(fontSize: 16)),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
