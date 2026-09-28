@@ -72,6 +72,63 @@ jobs:
           test -s assets/fonts/Amiri-Regular.ttf
           test -s assets/fonts/Amiri-Bold.ttf
 
+      - name: Set app name and dollar launcher icon
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          s = manifest.read_text()
+          application = re.search(r'<application\\b[^>]*>', s, flags=re.S)
+          if not application:
+              raise RuntimeError('AndroidManifest.xml: <application> not found')
+
+          tag = application.group(0)
+          if 'android:label=' in tag:
+              tag = re.sub(r'android:label="[^"]*"', 'android:label="حسابتى"', tag, count=1)
+          else:
+              tag = tag[:-1] + ' android:label="حسابتى">'
+          if 'android:icon=' in tag:
+              tag = re.sub(r'android:icon="[^"]*"', 'android:icon="@mipmap/ic_launcher"', tag, count=1)
+          else:
+              tag = tag[:-1] + ' android:icon="@mipmap/ic_launcher">'
+          if 'android:roundIcon=' in tag:
+              tag = re.sub(r'android:roundIcon="[^"]*"', 'android:roundIcon="@mipmap/ic_launcher"', tag, count=1)
+
+          s = s[:application.start()] + tag + s[application.end():]
+          manifest.write_text(s)
+          PY
+
+          rm -f /tmp/account_icon.png
+          convert -size 512x512 xc:none             -fill '#0D3B2E' -draw 'roundrectangle 24,24 488,488 84,84'             -fill '#D9A62E' -font DejaVu-Sans-Bold -pointsize 330             -gravity center -annotate +0+8 '
+
+      - name: Analyze
+        run: flutter analyze
+        continue-on-error: true
+
+      - name: Build APK (release)
+        run: flutter build apk --release
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gam3eya-app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+             /tmp/account_icon.png
+
+          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
+            density="${spec%%:*}"
+            size="${spec##*:}"
+            mkdir -p "android/app/src/main/res/mipmap-${density}"
+            convert /tmp/account_icon.png -resize "${size}x${size}" "android/app/src/main/res/mipmap-${density}/ic_launcher.png"
+          done
+
+          mkdir -p android/app/src/main/res/mipmap
+          convert /tmp/account_icon.png -resize 192x192 android/app/src/main/res/mipmap/ic_launcher.png
+          echo 'Launcher icon generated: dollar sign on dark green/gold background'
+
       - name: Get dependencies
         run: flutter pub get
 
