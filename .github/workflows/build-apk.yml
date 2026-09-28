@@ -88,23 +88,28 @@ jobs:
           tag = re.sub(r'\s+android:label="[^"]*"', '', tag, count=1)
           tag = re.sub(r'\s+android:icon="[^"]*"', '', tag, count=1)
           tag = re.sub(r'\s+android:roundIcon="[^"]*"', '', tag, count=1)
-          tag = tag[:-1] + ' android:label="حسابتى" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">'
+          tag = tag[:-1] + ' android:label="حسابتى" android:icon="@drawable/ic_launcher" android:roundIcon="@drawable/ic_launcher">'
           s = s[:application.start()] + tag + s[application.end():]
           manifest.write_text(s)
+
+          icon = Path('android/app/src/main/res/drawable/ic_launcher.xml')
+          icon.parent.mkdir(parents=True, exist_ok=True)
+          icon.write_text('''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#0D3B2E"
+                  android:pathData="M14,14 L94,14 Q98,14 98,18 L98,90 Q98,94 94,94 L14,94 Q10,94 10,90 L10,18 Q10,14 14,14 Z"/>
+              <path
+                  android:fillColor="#D9A62E"
+                  android:pathData="M61,27 C52,23 40,24 36,31 C31,40 38,45 49,48 C59,51 64,54 64,60 C64,66 58,70 50,70 C42,70 36,67 31,63 L27,72 C33,77 41,80 50,81 L50,88 L58,88 L58,81 C69,78 76,71 76,61 C76,50 68,45 55,42 C46,40 42,38 43,35 C44,32 49,31 53,31 C60,31 65,33 69,36 L74,28 C70,26 66,25 61,24 Z"/>
+          </vector>
+          ''')
+          print('App name set to حسابتى and dollar vector launcher icon generated')
           PY
-
-          convert -size 512x512 xc:none -fill '#0D3B2E' -draw 'roundrectangle 24,24 488,488 84,84' -fill '#D9A62E' -font DejaVu-Sans-Bold -pointsize 330 -gravity center -annotate +0+8 '$' /tmp/account_icon.png
-
-          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
-            density="${spec%%:*}"
-            size="${spec##*:}"
-            mkdir -p "android/app/src/main/res/mipmap-${density}"
-            convert /tmp/account_icon.png -resize "${size}x${size}" "android/app/src/main/res/mipmap-${density}/ic_launcher.png"
-          done
-
-          mkdir -p android/app/src/main/res/mipmap
-          convert /tmp/account_icon.png -resize 192x192 android/app/src/main/res/mipmap/ic_launcher.png
-          echo 'App name set to حسابتى and dollar launcher icon generated'
 
       - name: Analyze
         run: flutter analyze
