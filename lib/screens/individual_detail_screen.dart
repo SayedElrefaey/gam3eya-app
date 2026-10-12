@@ -471,10 +471,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 5),
                       child: IntrinsicHeight(
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          _ledgerCell(_formatDate(dt), flex: 14, background: Colors.white, textColor: cover, fontSize: 14),
-                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 20, background: Colors.white, textColor: Colors.black, fontSize: 16),
-                          _ledgerCell(fmtNum(e.amount), flex: 10, background: amountBackground, textColor: amountColor, fontSize: 16, bold: true),
-                          _ledgerCell(fmtNum(balance), flex: 10, background: balanceBackground, textColor: balanceColor, fontSize: 16, bold: true),
+                          _ledgerCell(_formatDate(dt), flex: 22, background: Colors.white, textColor: cover, fontSize: 12),
+                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 28, background: Colors.white, textColor: Colors.black, fontSize: 16),
+                          _ledgerCell(fmtNum(e.amount), flex: 25, background: amountBackground, textColor: amountColor, fontSize: 18, bold: true),
+                          _ledgerCell(fmtNum(balance), flex: 25, background: balanceBackground, textColor: balanceColor, fontSize: 18, bold: true),
                         ]),
                       ),
                     ),
@@ -504,10 +504,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
   ])));
 
   Widget _ledgerHeaderRow() => Row(children: [
-    _ledgerHeaderCell('التاريخ', 14),
-    _ledgerHeaderCell('التفاصيل', 20),
-    _ledgerHeaderCell('المبلغ', 8),
-    _ledgerHeaderCell('الرصيد', 8),
+    _ledgerHeaderCell('التاريخ', 22),
+    _ledgerHeaderCell('التفاصيل', 28),
+    _ledgerHeaderCell('المبلغ', 25),
+    _ledgerHeaderCell('الرصيد', 25),
   ]);
 
   Widget _ledgerHeaderCell(String text, int flex) => Expanded(
