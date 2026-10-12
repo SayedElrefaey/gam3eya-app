@@ -471,10 +471,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 5),
                       child: IntrinsicHeight(
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          _ledgerCell(_formatDate(dt), flex: 16, background: Colors.white, textColor: cover, fontSize: 15.5),
-                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 13, background: Colors.white, textColor: Colors.black, fontSize: 17),
-                          _ledgerCell(fmtNum(e.amount), flex: 8, background: amountBackground, textColor: amountColor, fontSize: 18, bold: true),
-                          _ledgerCell(fmtNum(balance), flex: 8, background: balanceBackground, textColor: balanceColor, fontSize: 18, bold: true),
+                          _ledgerCell(_formatDate(dt), flex: 14, background: Colors.white, textColor: cover, fontSize: 14),
+                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 20, background: Colors.white, textColor: Colors.black, fontSize: 16),
+                          _ledgerCell(fmtNum(e.amount), flex: 10, background: amountBackground, textColor: amountColor, fontSize: 16, bold: true),
+                          _ledgerCell(fmtNum(balance), flex: 10, background: balanceBackground, textColor: balanceColor, fontSize: 16, bold: true),
                         ]),
                       ),
                     ),
