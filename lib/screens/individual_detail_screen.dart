@@ -471,10 +471,10 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 5),
                       child: IntrinsicHeight(
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                          _ledgerCell(_formatDate(dt), flex: 22, background: Colors.white, textColor: cover, fontSize: 12),
+                          _ledgerCell(_formatDate(dt), flex: 22, background: Colors.white, textColor: cover, fontSize: 12, singleLine: true, horizontalPadding: 1),
                           _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 24, background: Colors.white, textColor: Colors.black, fontSize: 16),
-                          _ledgerCell(fmtNum(e.amount), flex: 27, background: amountBackground, textColor: amountColor, fontSize: 20, bold: true),
-                          _ledgerCell(fmtNum(balance), flex: 27, background: balanceBackground, textColor: balanceColor, fontSize: 20, bold: true),
+                          _ledgerCell(fmtNum(e.amount), flex: 27, background: amountBackground, textColor: amountColor, fontSize: 20, bold: true, singleLine: true, horizontalPadding: 2),
+                          _ledgerCell(fmtNum(balance), flex: 27, background: balanceBackground, textColor: balanceColor, fontSize: 20, bold: true, singleLine: true, horizontalPadding: 2),
                         ]),
                       ),
                     ),
@@ -521,17 +521,22 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
     ),
   );
 
-  Widget _ledgerCell(String text, {required int flex, required Color background, required Color textColor, double fontSize = 16, bool bold = false}) => Expanded(
-    flex: flex,
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(5), border: Border.all(color: _line, width: 0.7)),
-      child: Text(text, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: bold ? FontWeight.w800 : FontWeight.w500)),
-    ),
-  );
+  Widget _ledgerCell(String text, {required int flex, required Color background, required Color textColor, double fontSize = 16, bool bold = false, bool singleLine = false, double horizontalPadding = 7}) {
+    final textStyle = TextStyle(color: textColor, fontSize: fontSize, fontWeight: bold ? FontWeight.w800 : FontWeight.w500);
+    return Expanded(
+      flex: flex,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 5),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(5), border: Border.all(color: _line, width: 0.7)),
+        child: singleLine
+            ? FittedBox(fit: BoxFit.scaleDown, child: Text(text, textAlign: TextAlign.center, maxLines: 1, softWrap: false, style: textStyle))
+            : Text(text, textAlign: TextAlign.center, maxLines: 4, overflow: TextOverflow.ellipsis, style: textStyle),
+      ),
+    );
+  }
 
   Widget _summaryBox(double totalDebit, double totalCredit, double balance, String sym) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 2),
