@@ -472,9 +472,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
                       child: IntrinsicHeight(
                         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                           _ledgerCell(_formatDate(dt), flex: 22, background: Colors.white, textColor: cover, fontSize: 12, singleLine: true, horizontalPadding: 1),
-                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 30, background: Colors.white, textColor: Colors.black, fontSize: 16),
-                          _ledgerCell(fmtNum(e.amount), flex: 24, background: amountBackground, textColor: amountColor, fontSize: 16, bold: true, singleLine: true, horizontalPadding: 1),
-                          _ledgerCell(fmtNum(balance), flex: 24, background: balanceBackground, textColor: balanceColor, fontSize: 16, bold: true, singleLine: true, horizontalPadding: 1),
+                          _ledgerCell(e.note.isEmpty ? 'حركة' : e.note, flex: 34, background: Colors.white, textColor: Colors.black, fontSize: 16),
+                          _ledgerCell(fmtNum(e.amount), flex: 22, background: amountBackground, textColor: amountColor, fontSize: 14, bold: true, singleLine: true, horizontalPadding: 1),
+                          _ledgerCell(fmtNum(balance), flex: 22, background: balanceBackground, textColor: balanceColor, fontSize: 14, bold: true, singleLine: true, horizontalPadding: 1),
                         ]),
                       ),
                     ),
@@ -505,9 +505,9 @@ class _IndividualDetailScreenState extends State<IndividualDetailScreen> {
 
   Widget _ledgerHeaderRow() => Row(children: [
     _ledgerHeaderCell('التاريخ', 22),
-    _ledgerHeaderCell('التفاصيل', 30),
-    _ledgerHeaderCell('المبلغ', 24),
-    _ledgerHeaderCell('الرصيد', 24),
+    _ledgerHeaderCell('التفاصيل', 34),
+    _ledgerHeaderCell('المبلغ', 22),
+    _ledgerHeaderCell('الرصيد', 22),
   ]);
 
   Widget _ledgerHeaderCell(String text, int flex) => Expanded(
